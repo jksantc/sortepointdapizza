@@ -4,591 +4,524 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Roleta da Sorte - Point da Pizza</title>
-    
-    <!-- Tailwind CSS para Estilização Premium -->
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts para Tipografia Italiana Sofisticada -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- FontAwesome para Ícones Elegantes -->
+    <!-- Google Fonts de backup para fontes com peso pesado (Anton simula muito bem a Impact em dispositivos móveis) -->
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Canvas-Confetti para Celebração de Vitória -->
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        vinho: {
-                            light: '#722f37',
-                            DEFAULT: '#4a0e17',
-                            dark: '#2d050a'
-                        },
-                        ouro: {
-                            light: '#fde047',
-                            DEFAULT: '#dfb15b',
-                            dark: '#b8860b'
-                        },
-                        creme: '#faf6f0'
-                    },
-                    fontFamily: {
-                        serif: ['Cinzel', 'serif'],
-                        sans: ['Inter', 'sans-serif']
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Firebase App and Firestore Compatibility Libraries -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background: radial-gradient(circle, #4a0e17 0%, #1a0205 100%);
+            background-color: #fdfcfc;
+            background-image: radial-gradient(#AA000008 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
         }
-        .title-glow {
-            text-shadow: 0 0 10px rgba(223, 177, 91, 0.4);
+        /* Classe personalizada para a fonte IMPACT em Caixa Alta */
+        .font-impact {
+            font-family: 'Impact', 'Anton', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
-        /* Custom scrollbar para tabelas de histórico */
+        /* Customizar barra de rolagem */
         ::-webkit-scrollbar {
             width: 6px;
         }
         ::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.1);
+            background: #f1f1f1;
         }
         ::-webkit-scrollbar-thumb {
-            background: rgba(223, 177, 91, 0.3);
+            background: #AA0000;
             border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(223, 177, 91, 0.5);
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4 overflow-x-hidden text-creme selection:bg-ouro selection:text-vinho-dark">
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden text-gray-800">
 
-    <main class="w-full max-w-4xl bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 md:p-10 shadow-2xl relative overflow-hidden flex flex-col items-center">
-        
-        <!-- Badge de Modo de Funcionamento -->
-        <div id="mode-badge" class="absolute top-3 right-3 px-3 py-1 bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs rounded-full font-medium flex items-center gap-1.5 animate-pulse">
-            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-            Modo de Teste Local
+    <header class="w-full py-3 px-6 bg-[#AA0000] border-b-4 border-white sticky top-0 z-40 shadow-lg">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <!-- Logotipo Real enviado pelo usuário -->
+                <img src="p-logo.png" alt="Point da Pizza Logo" class="h-12 w-auto object-contain drop-shadow" onerror="this.onerror=null; this.src='https://placehold.co/150x60/AA0000/ffffff?text=Point+da+Pizza';">
+            </div>
+            <div class="flex items-center gap-2 text-xs font-bold text-white bg-[#880000] px-3.5 py-1.5 rounded-full uppercase tracking-wider">
+                <i class="fa-solid fa-circle-check"></i>
+                <span>Dia da Pizza: 1 Giro por CPF</span>
+            </div>
         </div>
+    </header>
 
-        <!-- Cabeçalho Principal -->
-        <header class="text-center mb-8">
-            <div class="flex justify-center mb-2 text-ouro">
-                <i class="fa-solid fa-pizza-slice text-4xl animate-bounce"></i>
-            </div>
-            <h1 class="font-serif text-3xl md:text-5xl font-black tracking-wider text-ouro title-glow">POINT DA PIZZA</h1>
-            <div class="h-[2px] w-32 bg-gradient-to-r from-transparent via-ouro to-transparent mx-auto my-3"></div>
-            <p class="text-creme/70 text-sm md:text-base font-medium max-w-md mx-auto uppercase tracking-widest font-serif">Sorteio Especial do Dia da Pizza 🍕</p>
-        </header>
-
-        <!-- SEÇÃO 1: CADASTRO DO CLIENTE -->
-        <section id="sec-cadastro" class="w-full max-w-md bg-vinho-dark/50 border border-white/5 p-6 rounded-xl shadow-inner transition-all duration-500">
-            <h2 class="text-xl font-serif text-center mb-6 text-ouro font-bold">Faça seu Cadastro para Jogar</h2>
-            <form id="form-cadastro" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-creme/60 uppercase tracking-wider mb-1.5"><i class="fa-solid fa-user mr-1 text-ouro"></i> Nome Completo</label>
-                    <input type="text" id="input-nome" required placeholder="Como podemos te chamar?" 
-                           class="w-full bg-black/40 border border-white/10 focus:border-ouro/60 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-ouro/30 transition-all text-white">
-                </div>
-                
-                <div>
-                    <label class="block text-xs font-semibold text-creme/60 uppercase tracking-wider mb-1.5"><i class="fa-solid fa-phone mr-1 text-ouro"></i> Telefone (WhatsApp)</label>
-                    <input type="text" id="input-telefone" required placeholder="(00) 90000-0000" 
-                           class="w-full bg-black/40 border border-white/10 focus:border-ouro/60 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-ouro/30 transition-all text-white">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-creme/60 uppercase tracking-wider mb-1.5"><i class="fa-solid fa-id-card mr-1 text-ouro"></i> CPF (Apenas 1 giro por pessoa)</label>
-                    <input type="text" id="input-cpf" required placeholder="000.000.000-00" 
-                           class="w-full bg-black/40 border border-white/10 focus:border-ouro/60 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-ouro/30 transition-all text-white">
-                </div>
-
-                <div id="error-message" class="hidden p-3 bg-red-950/80 border border-red-500/30 text-red-300 text-xs rounded-lg flex items-center gap-2">
-                    <i class="fa-solid fa-circle-exclamation text-base"></i>
-                    <span id="error-text"></span>
-                </div>
-
-                <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-ouro-dark to-ouro hover:from-ouro hover:to-ouro-light text-vinho-dark font-bold rounded-lg shadow-lg hover:shadow-ouro/20 transform hover:-translate-y-0.5 active:translate-y-0 transition-all uppercase tracking-wider text-xs">
-                    Validar e Ir para a Roleta
-                </button>
-            </form>
-        </section>
-
-        <!-- SEÇÃO 2: A ROLETA (PIZZA) -->
-        <section id="sec-roleta" class="hidden w-full flex flex-col items-center transition-all duration-500">
-            <div class="relative w-full max-w-[320px] md:max-w-[380px] aspect-square flex items-center justify-center my-6">
-                
-                <!-- Ponteiro Indicador da Pizza (Garfo / Faca ou Setinha Vintage) -->
-                <div class="absolute -top-4 z-20 flex flex-col items-center filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)]">
-                    <div class="w-8 h-8 bg-gradient-to-b from-ouro to-ouro-dark rounded-full border-2 border-vinho-dark flex items-center justify-center shadow-md">
-                        <i class="fa-solid fa-location-pin text-vinho-dark text-lg rotate-180"></i>
-                    </div>
-                    <div class="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[20px] border-t-ouro -mt-2"></div>
-                </div>
-
-                <!-- Canvas da Roleta Estilizada como Pizza -->
-                <canvas id="canvas-pizza" width="500" height="500" class="w-full h-full rounded-full shadow-[0_0_50px_rgba(0,0,0,0.8)] border-4 border-ouro/60 z-10"></canvas>
-            </div>
-
-            <div class="text-center space-y-4">
-                <p class="text-sm text-creme/60 italic">Boa sorte, <span id="client-name-display" class="text-ouro font-semibold"></span>! Toque no botão abaixo para assar a sua sorte!</p>
-                <button id="btn-girar" class="px-10 py-4 bg-gradient-to-r from-red-700 to-vinho hover:from-red-600 hover:to-red-800 text-white font-serif font-black text-lg rounded-xl shadow-xl hover:shadow-red-700/20 border border-ouro/40 hover:border-ouro tracking-widest transform hover:scale-105 active:scale-95 transition-all uppercase">
-                    🍕 Girar Roleta!
-                </button>
-            </div>
-        </section>
-
-        <!-- SEÇÃO 3: PARABÉNS (RESULTADO) -->
-        <section id="sec-premio" class="hidden w-full max-w-md text-center space-y-6 transition-all duration-500">
-            <div class="w-24 h-24 bg-ouro/10 border-2 border-ouro rounded-full flex items-center justify-center mx-auto shadow-lg animate-pulse">
-                <i class="fa-solid fa-trophy text-ouro text-5xl"></i>
-            </div>
+    <main class="flex-grow flex flex-col items-center justify-center py-6 px-4">
+        <div class="w-full max-w-md flex flex-col items-center">
             
-            <div class="space-y-2">
-                <h2 class="font-serif text-2xl md:text-4xl font-extrabold text-ouro title-glow">PARABÉNS!</h2>
-                <p class="text-creme/80">O Dia da Pizza reservou algo delicioso para você, <span id="winner-name-display" class="font-bold text-white"></span>!</p>
+            <div class="text-center mb-6">
+                <h1 class="font-impact text-3xl sm:text-4xl text-[#AA0000] tracking-wide">
+                    ROLETA DA SORTE POINT
+                </h1>
+                <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mt-1">Sorteio Exclusivo Dia da Pizza 🍕</p>
             </div>
 
-            <!-- Card de Exibição do Prêmio -->
-            <div class="bg-gradient-to-b from-vinho-light/30 to-vinho-dark/50 border-2 border-dashed border-ouro/50 p-6 rounded-xl shadow-lg relative overflow-hidden max-w-sm mx-auto">
-                <div class="absolute -right-4 -top-4 opacity-10">
-                    <i class="fa-solid fa-pizza-slice text-8xl text-ouro"></i>
+            <!-- Contêiner Central da Roleta -->
+            <div class="relative w-80 h-80 sm:w-96 sm:h-96 flex items-center justify-center bg-white rounded-full p-4 shadow-xl border-4 border-[#AA0000]/10">
+                <!-- Ponteiro superior (Vermelho Vinho) -->
+                <div class="absolute -top-3 z-30 flex flex-col items-center">
+                    <div class="w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-t-[22px] border-t-[#AA0000] drop-shadow-md"></div>
+                    <div class="w-1.5 h-3 bg-[#AA0000] -mt-1"></div>
                 </div>
-                <p class="text-xs uppercase tracking-wider text-creme/60 mb-2">Seu Cupom de Prêmio</p>
-                <div id="winner-prize-text" class="text-2xl font-serif font-black text-ouro tracking-wider leading-snug mb-3">
-                    Carregando prêmio...
-                </div>
-                <div class="bg-black/50 py-2 px-4 rounded-lg inline-block border border-white/5 font-mono text-sm tracking-widest text-emerald-400">
-                    CÓDIGO: <span id="voucher-code-display">POINT-XXXX</span>
+                <!-- Canvas da Roleta -->
+                <canvas id="wheel-canvas" class="w-full h-full drop-shadow-lg z-10"></canvas>
+                <!-- Central Logo Wrapper (Substitui o Emoji de pizza no centro da roleta) -->
+                <div class="absolute w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full z-20 flex items-center justify-center border-4 border-[#AA0000] shadow-md">
+                    <img src="p-logo.png" alt="Point Logo" class="w-11 h-11 sm:w-14 sm:h-14 object-contain" onerror="this.onerror=null; this.src='https://placehold.co/100/AA0000/ffffff?text=Point';">
                 </div>
             </div>
 
-            <div class="space-y-4 text-sm text-creme/70 max-w-xs mx-auto">
-                <p class="text-xs text-creme/50"><i class="fa-solid fa-circle-info mr-1 text-ouro"></i> Tire um print desta tela ou anote o seu código de prêmio.</p>
-                
-                <a id="btn-share-whatsapp" target="_blank" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 shadow-lg transition-all transform hover:-translate-y-0.5">
-                    <i class="fa-brands fa-whatsapp text-lg"></i> Resgatar no WhatsApp do Point
-                </a>
+            <!-- Botão de Ação Principal (Fica travado até o cadastro ser concluído) -->
+            <div class="w-full max-w-xs mt-6">
+                <button id="btn-main-action"
+                        class="w-full py-4 bg-[#AA0000] hover:bg-[#880000] text-white font-impact text-xl rounded-full transition duration-200 shadow-lg flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-spinner animate-spin"></i>
+                    <span>CADASTRAR E GIRAR</span>
+                </button>
             </div>
-        </section>
 
+        </div>
     </main>
 
-    <!-- Scripts Firebase e Lógica da Roleta -->
-    <script type="module">
-        // Importando o Firebase SDK via CDN moderno (ES Modules)
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    <div id="popup-cadastro" class="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 px-4">
+        <div class="w-full max-w-md bg-white border-2 border-[#AA0000] rounded-2xl shadow-2xl p-6 sm:p-8 relative overflow-hidden">
+            
+            <!-- Detalhe Vinho no Topo -->
+            <div class="absolute top-0 left-0 right-0 h-2 bg-[#AA0000]"></div>
+            
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-24 h-24 bg-[#AA0000]/5 rounded-full mb-3 p-2">
+                    <img src="p-logo.png" alt="Point da Pizza Logo" class="w-20 h-auto object-contain" onerror="this.onerror=null; this.src='https://placehold.co/100/AA0000/ffffff?text=Point';">
+                </div>
+                <h2 class="font-impact text-2xl text-[#AA0000]">IDENTIFIQUE-SE PARA JOGAR</h2>
+                <p class="text-xs text-gray-500 font-semibold mt-1 uppercase tracking-wider">Garanta seu prêmio único por CPF</p>
+            </div>
 
-        // CONFIGURAÇÃO DO FIREBASE
-        // Quando você criar seu Firebase grátis, substitua este objeto com as suas credenciais!
-        const firebaseConfig = {
-            apiKey: "SUA_API_KEY",
-            authDomain: "point-da-pizza.firebaseapp.com",
-            projectId: "point-da-pizza",
-            storageBucket: "point-da-pizza.appspot.com",
-            messagingSenderId: "SEU_SENDER_ID",
-            appId: "SEU_APP_ID"
-        };
+            <!-- Alerta de erro personalizado -->
+            <div id="popup-notif" class="hidden mb-4 p-3 bg-red-50 text-xs text-[#AA0000] border border-red-100 rounded-lg text-center font-bold flex items-center justify-center gap-2"></div>
 
-        // Identifica automaticamente se as credenciais originais foram substituídas
-        const isLiveMode = firebaseConfig.apiKey !== "SUA_API_KEY";
-        const modeBadge = document.getElementById('mode-badge');
-        
+            <form id="form-popup" class="space-y-4">
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1">Nome Completo</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                            <i class="fa-regular fa-user text-xs"></i>
+                        </span>
+                        <input type="text" id="input-nome" required placeholder="Ex: João Silva" 
+                               class="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-800 text-sm focus:outline-none focus:border-[#AA0000] focus:ring-1 focus:ring-[#AA0000]">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1">WhatsApp</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                            <i class="fa-brands fa-whatsapp text-xs"></i>
+                        </span>
+                        <input type="tel" id="input-telefone" required placeholder="Ex: (14) 99999-9999" 
+                               class="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-800 text-sm focus:outline-none focus:border-[#AA0000] focus:ring-1 focus:ring-[#AA0000]">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1">Seu CPF</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                            <i class="fa-regular fa-id-card text-xs"></i>
+                        </span>
+                        <input type="text" id="input-cpf" required placeholder="000.000.000-00" maxlength="14"
+                               class="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-800 text-sm focus:outline-none focus:border-[#AA0000] focus:ring-1 focus:ring-[#AA0000]">
+                    </div>
+                </div>
+                
+                <button type="submit" id="btn-popup-submit"
+                        class="w-full py-3.5 bg-[#AA0000] hover:bg-[#880000] text-white font-impact text-lg rounded-xl transition duration-200 shadow-md flex items-center justify-center gap-2">
+                    <span>LIBERAR MEU GIRO</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="popup-resultado" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 px-4">
+        <div class="w-full max-w-sm bg-white border-2 border-[#AA0000] rounded-2xl shadow-2xl p-6 text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 right-0 h-2 bg-[#AA0000]"></div>
+            
+            <div class="text-5xl my-4 animate-bounce">🍕🎉🏆</div>
+            
+            <h3 class="font-impact text-2xl text-[#AA0000]">PARABÉNS!</h3>
+            <p class="text-xs text-gray-500 uppercase tracking-wider">Seu prêmio está garantido</p>
+            
+            <div class="bg-red-50 border-2 border-dashed border-[#AA0000] my-6 p-5 rounded-xl">
+                <span class="text-[9px] uppercase tracking-widest text-[#AA0000] font-bold">CUPOM EXCLUSIVO</span>
+                <div id="display-premio-texto" class="font-impact text-2xl text-[#AA0000] mt-1"></div>
+                <div id="display-premio-desc" class="text-xs text-gray-600 mt-2 leading-relaxed"></div>
+            </div>
+
+            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 text-[11px] text-gray-500 text-left space-y-1">
+                <p class="font-bold text-[#AA0000] flex items-center gap-1">
+                    <i class="fa-solid fa-info-circle"></i> Como retirar:
+                </p>
+                <p>Tire um print de segurança desta tela. O prêmio está associado ao seu CPF no nosso banco. Apresente o documento ao atendente para validar no seu próximo pedido.</p>
+            </div>
+
+            <button id="btn-reiniciar"
+                    class="mt-6 w-full py-2.5 border-2 border-[#AA0000] hover:bg-red-50 text-[#AA0000] font-impact text-sm rounded-xl transition duration-200">
+                Voltar para o Início
+            </button>
+        </div>
+    </div>
+
+    <!-- Rodapé -->
+    <footer class="w-full py-3 text-center text-[10px] text-gray-400 bg-white border-t border-gray-100 z-30">
+        <p>&copy; 2026 Point da Pizza. Todos os direitos reservados. 🍕</p>
+    </footer>
+
+    <script>
+        // --- CONFIGURAÇÃO DO FIREBASE ---
+        // Substitua o bloco antigo por este na linha 158 do seu index.html:
+const firebaseConfig = {
+  apiKey: "AIzaSyCbV1J2nJgEuVIri19MNyTn69gzliYrNRs",
+  authDomain: "sorte-pointdapizza.firebaseapp.com",
+  projectId: "sorte-pointdapizza",
+  storageBucket: "sorte-pointdapizza.firebasestorage.app",
+  messagingSenderId: "761393097671",
+  appId: "1:761393097671:web:a032178908eff5dbf847e2"
+};
+
         let db = null;
-        if (isLiveMode) {
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            modeBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400"></span> Conectado ao Banco';
-            modeBadge.className = "absolute top-3 right-3 px-3 py-1 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs rounded-full font-medium flex items-center gap-1.5";
-        } else {
-            console.log("🔥 Rodando em Modo de Simulação Local (LocalStorage). Para salvar na nuvem, configure as chaves do Firebase.");
-        }
+        let isFirebaseActive = false;
 
-        // --- Configuração dos Prêmios e Cores (Tema Pizza) ---
-        // As cores simulam uma pizza real (Massa/Borda, Molho/Vinho, Queijo/Creme)
-        const PREMIOS = [
-            { nome: 'Cupom 10% OFF', cor: '#b82633', textCor: '#ffffff', prob: 50 },       // Vermelho Molho
-            { nome: 'Cupom 20% OFF', cor: '#dfb15b', textCor: '#4a0e17', prob: 30 },       // Amarelo Queijo
-            { nome: 'Pizza Broto Doce', cor: '#5c2d1b', textCor: '#ffffff', prob: 12 },    // Chocolate
-            { nome: 'Pizza Inteira', cor: '#df852c', textCor: '#ffffff', prob: 6 },        // Pepperoni Laranja
-            { nome: 'Rodízio Grátis', cor: '#1a5c2d', textCor: '#ffffff', prob: 2 }        // Verde Manjericão
-        ];
-
-        // Dados de controle do cliente atual
-        let cliente = {
-            nome: "",
-            telefone: "",
-            cpf: ""
-        };
-
-        // Validação Algorítmica Oficial do CPF
-        function validarCPF(cpf) {
-            cpf = cpf.replace(/[^\d]+/g, '');
-            if (cpf == '' || cpf.length !== 11) return false;
-            // Bloqueia CPFs de dígitos repetidos manjados
-            if (/^(\d)\1{10}$/.test(cpf)) return false;
-            
-            let add = 0;
-            for (let i = 0; i < 9; i++) add += parseInt(cpf.charAt(i)) * (10 - i);
-            let rev = 11 - (add % 11);
-            if (rev === 10 || rev === 11) rev = 0;
-            if (rev !== parseInt(cpf.charAt(9))) return false;
-            
-            add = 0;
-            for (let i = 0; i < 10; i++) add += parseInt(cpf.charAt(i)) * (11 - i);
-            rev = 11 - (add % 11);
-            if (rev === 10 || rev === 11) rev = 0;
-            if (rev !== parseInt(cpf.charAt(10))) return false;
-            
-            return true;
-        }
-
-        // Gerador de Som Virtual usando Web Audio API para simular os cliques físicos da roleta
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playTickSound() {
+        if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "SUA_API_KEY") {
             try {
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.frequency.setValueAtTime(600, audioCtx.currentTime); // Frequência aguda do estalo
-                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.05);
-            } catch (e) {
-                // Navegador bloqueou áudio ou erro irrelevante
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                isFirebaseActive = true;
+                console.log("🔥 Firebase Firestore ativo!");
+            } catch (err) {
+                console.error("Modo de teste local ativo.", err);
             }
         }
 
-        // --- Motor Gráfico 2D da Pizza-Roleta ---
-        const canvas = document.getElementById('canvas-pizza');
+        // --- CONFIGURAÇÕES DOS 5 PRÊMIOS ---
+        const PRIZES = [
+            { id: 0, name: 'CUPOM 10% OFF', prob: 50, desc: 'Ganhou 10% de desconto em qualquer pizza salgada ou doce!' },
+            { id: 1, name: 'CUPOM 20% OFF', prob: 30, desc: 'Excelente desconto! Ganhou 20% de desconto para saborear sua pizza.' },
+            { id: 2, name: 'PIZZA BROTO DOCE', prob: 14, desc: 'Uma brotinho doce deliciosa para fechar sua noite com chave de ouro!' },
+            { id: 3, name: 'PIZZA GRÁTIS', prob: 5, desc: 'Incrível! Ganhou uma pizza salgada inteira tamanho Grande!' },
+            { id: 4, name: 'UM RODÍZIO GRÁTIS', prob: 1, desc: 'A maior sorte do Point! Ganhou uma entrada para o nosso rodízio de pizza completo!' }
+        ];
+
+        // Cores intercaladas sem nenhum tom de amarelo (Vermelho Vinho e Branco Puro)
+        const SECTOR_COLORS = [
+            { bg: '#AA0000', text: '#ffffff' }, 
+            { bg: '#ffffff', text: '#AA0000' }, 
+            { bg: '#AA0000', text: '#ffffff' }, 
+            { bg: '#ffffff', text: '#AA0000' }, 
+            { bg: '#AA0000', text: '#ffffff' }  
+        ];
+
+        let currentParticipant = { nome: '', telefone: '', cpf: '' };
+
+        // Referências do DOM
+        const popupCadastro = document.getElementById('popup-cadastro');
+        const formPopup = document.getElementById('form-popup');
+        const popupNotif = document.getElementById('popup-notif');
+        const btnMainAction = document.getElementById('btn-main-action');
+        const btnPopupSubmit = document.getElementById('btn-popup-submit');
+        const popupResultado = document.getElementById('popup-resultado');
+        const displayPremioTexto = document.getElementById('display-premio-texto');
+        const displayPremioDesc = document.getElementById('display-premio-desc');
+        const btnReiniciar = document.getElementById('btn-reiniciar');
+
+        // Máscara CPF em tempo real
+        document.getElementById('input-cpf').addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, "");
+            if (value.length > 11) value = value.slice(0, 11);
+            if (value.length > 9) {
+                value = value.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+            } else if (value.length > 6) {
+                value = value.replace(/^(\d{3})(\d{3})(\d{0,3})$/, "$1.$2.$3");
+            } else if (value.length > 3) {
+                value = value.replace(/^(\d{3})(\d{0,3})$/, "$1.$2");
+            }
+            e.target.value = value;
+        });
+
+        // Máscara Telefone
+        document.getElementById('input-telefone').addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, "");
+            if (value.length > 11) value = value.slice(0, 11);
+            if (value.length > 10) {
+                value = value.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
+            } else if (value.length > 5) {
+                value = value.replace(/^(\d{2})(\d{4})(\d{0,4})$/, "($1) $2-$3");
+            } else if (value.length > 2) {
+                value = value.replace(/^(\d{2})(\d{0,5})$/, "($1) $2");
+            } else if (value.length > 0) {
+                value = "(" + value;
+            }
+            e.target.value = value;
+        });
+
+        function showPopupError(msg) {
+            popupNotif.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> <span>${msg}</span>`;
+            popupNotif.classList.remove('hidden');
+        }
+
+        // --- DESENHO DO CANVAS (A ROLETA) ---
+        const canvas = document.getElementById('wheel-canvas');
         const ctx = canvas.getContext('2d');
-        const totalSlices = PREMIOS.length;
-        const sliceAngle = (2 * Math.PI) / totalSlices;
         let currentRotation = 0;
+        let isSpinning = false;
+
+        function resizeCanvas() {
+            const rect = canvas.parentNode.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            drawPizzaWheel();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
 
         function drawPizzaWheel() {
+            if (!canvas.width) return;
             const cx = canvas.width / 2;
             const cy = canvas.height / 2;
-            const radius = cx - 15;
+            const radius = Math.min(cx, cy) * 0.95;
+            const sliceAngle = (Math.PI * 2) / PRIZES.length;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(currentRotation);
 
-            // Borda de massa assada (Borda recheada de ouro!)
+            // Borda externa sólida em Vermelho Vinho
             ctx.beginPath();
             ctx.arc(0, 0, radius, 0, Math.PI * 2);
-            ctx.fillStyle = '#df8f2d'; // Cor de borda dourada/caramelizada
+            ctx.fillStyle = '#AA0000'; 
             ctx.fill();
-            ctx.lineWidth = 6;
-            ctx.strokeStyle = '#a3590f';
-            ctx.stroke();
 
-            // Slices (Fatias da Pizza)
-            for (let i = 0; i < totalSlices; i++) {
+            // Borda interna em branco para separação
+            ctx.beginPath();
+            ctx.arc(0, 0, radius - 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+
+            // Desenhar fatias alternadas
+            for (let i = 0; i < PRIZES.length; i++) {
                 const startAngle = i * sliceAngle;
                 const endAngle = startAngle + sliceAngle;
 
-                // Fatia de queijo/molho
                 ctx.beginPath();
                 ctx.moveTo(0, 0);
-                ctx.arc(0, 0, radius - 8, startAngle, endAngle);
-                ctx.fillStyle = PREMIOS[i].cor;
+                ctx.arc(0, 0, radius - 10, startAngle, endAngle);
+                ctx.fillStyle = SECTOR_COLORS[i].bg;
                 ctx.fill();
 
-                // Detalhe de borda de queijo fundido interna
-                ctx.lineWidth = 1;
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-                ctx.stroke();
-
-                // Desenho de Pepperonis nas fatias que não são de chocolate para parecer pizza artesanal
-                if (PREMIOS[i].nome.includes('Inteira')) {
-                    drawPepperonis(startAngle + sliceAngle/2, radius * 0.5);
+                // Seção estilizada em degradê ou borda interna para destaque da fatia branca
+                if (SECTOR_COLORS[i].bg === '#ffffff') {
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.arc(0, 0, radius - 10, startAngle, endAngle);
+                    ctx.strokeStyle = '#AA000015';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
                 }
 
-                // Escrever os nomes dos Prêmios (Textos radiais)
+                // Texto dos prêmios em Caixa Alta com Impact
                 ctx.save();
                 ctx.rotate(startAngle + sliceAngle / 2);
                 ctx.textAlign = 'right';
                 ctx.textBaseline = 'middle';
-                ctx.fillStyle = PREMIOS[i].textCor;
-                ctx.font = 'bold 20px Cinzel, serif';
-                ctx.fillText(PREMIOS[i].nome, radius - 40, 0);
+                ctx.fillStyle = SECTOR_COLORS[i].text;
+                
+                const fontSize = Math.floor(radius * 0.065);
+                ctx.font = `bold ${fontSize}px 'Impact', 'Anton', sans-serif`;
+                ctx.fillText(PRIZES[i].name, radius - 30, 0);
                 ctx.restore();
             }
 
-            // Centro da Pizza (Catupiry / Azeitona central)
+            // Centro circular que serve de borda para o logotipo central flutuante
             ctx.beginPath();
-            ctx.arc(0, 0, 35, 0, Math.PI * 2);
-            ctx.fillStyle = '#4a0e17'; // Centro cor vinho
-            ctx.fill();
-            ctx.lineWidth = 4;
-            ctx.strokeStyle = '#dfb15b'; // Detalhe ouro
-            ctx.stroke();
-
-            // Ícone da Azeitona no centro
-            ctx.beginPath();
-            ctx.arc(0, 0, 10, 0, Math.PI * 2);
-            ctx.fillStyle = '#111'; // Azeitona Preta
+            ctx.arc(0, 0, radius * 0.22, 0, Math.PI * 2);
+            ctx.fillStyle = '#AA0000'; 
             ctx.fill();
 
             ctx.restore();
         }
 
-        // Auxiliar para desenhar pequenos círculos de calabresa
-        function drawPepperonis(angle, dist) {
-            ctx.save();
-            ctx.rotate(angle);
-            ctx.beginPath();
-            ctx.arc(dist, -15, 14, 0, Math.PI * 2);
-            ctx.fillStyle = '#8b1212';
-            ctx.fill();
-            ctx.strokeStyle = '#600505';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.arc(dist + 20, 15, 10, 0, Math.PI * 2);
-            ctx.fillStyle = '#8b1212';
-            ctx.fill();
-            ctx.stroke();
-            ctx.restore();
-        }
+        setTimeout(resizeCanvas, 200);
 
-        // Renderização inicial estática
-        drawPizzaWheel();
-
-        // --- Física e Animação de Giro Decelerado ---
-        let isSpinning = false;
-        let lastTickAngle = 0;
-
-        function runSpinAnimation(targetAngle, onComplete) {
-            isSpinning = true;
-            const duration = 6000; // 6 segundos de pura ansiedade!
-            const startTimestamp = performance.now();
-            const startRotation = currentRotation % (Math.PI * 2);
-            const totalRotationNeeded = targetAngle - startRotation;
-
-            function animate(now) {
-                const elapsed = now - startTimestamp;
-                const progress = Math.min(elapsed / duration, 1);
-
-                // Curva de desaceleração suave (EaseOutCubic)
-                const ease = 1 - Math.pow(1 - progress, 3.5);
-                currentRotation = startRotation + totalRotationNeeded * ease;
-
-                // Tocar o estalo da roleta ao cruzar a borda de cada fatia
-                const sliceProgress = Math.floor((currentRotation) / sliceAngle);
-                if (sliceProgress !== lastTickAngle) {
-                    playTickSound();
-                    lastTickAngle = sliceProgress;
-                }
-
-                drawPizzaWheel();
-
-                if (progress < 1) {
-                    requestAnimationFrame(animate);
-                } else {
-                    isSpinning = false;
-                    onComplete();
-                }
-            }
-            requestAnimationFrame(animate);
-        }
-
-        // Lógica matemática para decidir qual prêmio ganhou baseado nas probabilidades
-        function sortearIndicePremio() {
-            const random = Math.random() * 100;
-            let soma = 0;
-            for (let i = 0; i < PREMIOS.length; i++) {
-                soma += PREMIOS[i].prob;
-                if (random <= soma) return i;
-            }
-            return 0; // Fallback de emergência
-        }
-
-        // --- Fluxo de Cadastro e Verificação do Banco de Dados ---
-        const formCadastro = document.getElementById('form-cadastro');
-        const inputNome = document.getElementById('input-nome');
-        const inputTelefone = document.getElementById('input-telefone');
-        const inputCpf = document.getElementById('input-cpf');
-        const errorDiv = document.getElementById('error-message');
-        const errorText = document.getElementById('error-text');
-
-        formCadastro.addEventListener('submit', async (e) => {
+        formPopup.addEventListener('submit', async (e) => {
             e.preventDefault();
-            errorDiv.classList.add('hidden');
+            popupNotif.classList.add('hidden');
 
-            const cpfLimpo = inputCpf.value.replace(/\D/g, '');
-            if (!validarCPF(cpfLimpo)) {
-                showError("O CPF inserido é inválido. Por favor, verifique.");
+            const rawNome = document.getElementById('input-nome').value.trim();
+            const rawTelefone = document.getElementById('input-telefone').value.trim();
+            const rawCpf = document.getElementById('input-cpf').value.replace(/\D/g, "");
+
+            if (rawCpf.length !== 11) {
+                showPopupError("O CPF precisa conter exatamente 11 dígitos.");
                 return;
             }
 
-            cliente.nome = inputNome.value.trim();
-            cliente.telefone = inputTelefone.value.trim();
-            cliente.cpf = cpfLimpo;
+            currentParticipant = { nome: rawNome, telefone: rawTelefone, cpf: rawCpf };
+
+            btnPopupSubmit.disabled = true;
+            btnPopupSubmit.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>VALIDANDO...</span>`;
 
             try {
-                if (isLiveMode) {
-                    // Modo Real com Banco Firebase
-                    const clientRef = doc(db, "leads_roleta", cpfLimpo);
-                    const docSnap = await getDoc(clientRef);
+                let jaGanhou = false;
+                let premioSalvo = "";
 
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        showError(`Este CPF já participou! Você ganhou: ${data.premio} em ${new Date(data.dataHora).toLocaleDateString()}`);
-                        return;
+                if (isFirebaseActive) {
+                    const userDoc = await db.collection("clientes_roleta").doc(rawCpf).get();
+                    if (userDoc.exists) {
+                        jaGanhou = true;
+                        premioSalvo = userDoc.data().premio;
                     }
                 } else {
-                    // Modo Local com LocalStorage (Sorteio Simulado)
-                    const localData = localStorage.getItem(`roleta_lead_${cpfLimpo}`);
-                    if (localData) {
-                        const data = JSON.parse(localData);
-                        showError(`[TESTE LOCAL] Este CPF já jogou! Prêmio anterior: ${data.premio}`);
-                        return;
+                    const existing = localStorage.getItem(`pizza_lead_${rawCpf}`);
+                    if (existing) {
+                        const parsed = JSON.parse(existing);
+                        jaGanhou = true;
+                        premioSalvo = parsed.premio;
                     }
                 }
 
-                // Sucesso: Segue para a roleta
-                document.getElementById('client-name-display').textContent = cliente.nome.split(' ')[0];
-                transicaoEtapa('sec-cadastro', 'sec-roleta');
+                if (jaGanhou) {
+                    showPopupError(`CPF já cadastrado! Você já ganhou "${premioSalvo}". Apresente seu CPF no balcão.`);
+                    btnPopupSubmit.disabled = false;
+                    btnPopupSubmit.innerHTML = `<span>LIBERAR MEU GIRO</span> <i class="fa-solid fa-arrow-right"></i>`;
+                } else {
+                    // Desativa o popup obrigatório com transição suave
+                    popupCadastro.classList.add('hidden');
+                    
+                    // Configura o botão principal abaixo da roleta agora ativo
+                    btnMainAction.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i><span>GIRANDO SUA SORTE...</span>`;
+                    btnMainAction.disabled = true;
+                    
+                    // Inicia o giro automático para ser ainda mais direto!
+                    iniciarGiroRoleta();
+                }
 
             } catch (err) {
                 console.error(err);
-                showError("Erro de rede ao conectar com o banco. Certifique-se de que sua chave do Firebase está ativa e configurada!");
+                showPopupError("Falha de conexão. Tente novamente.");
+                btnPopupSubmit.disabled = false;
+                btnPopupSubmit.innerHTML = `<span>LIBERAR MEU GIRO</span> <i class="fa-solid fa-arrow-right"></i>`;
             }
         });
 
-        function showError(msg) {
-            errorText.textContent = msg;
-            errorDiv.classList.remove('hidden');
-        }
+        function sortearPremio() {
+            const random = Math.random() * 100;
+            let cumulative = 0;
 
-        function transicaoEtapa(antigaId, novaId) {
-            const antiga = document.getElementById(antigaId);
-            const nova = document.getElementById(novaId);
-            
-            antiga.classList.add('opacity-0', 'scale-95');
-            setTimeout(() => {
-                antiga.classList.add('hidden');
-                nova.classList.remove('hidden');
-                // Pequena folga para renderizar o elemento antes da transição visual de entrada
-                setTimeout(() => {
-                    nova.classList.remove('opacity-0', 'scale-95');
-                }, 50);
-            }, 500);
-        }
-
-        // --- Disparo da Roleta ---
-        const btnGirar = document.getElementById('btn-girar');
-        btnGirar.addEventListener('click', async () => {
-            if (isSpinning) return;
-            btnGirar.disabled = true;
-            btnGirar.textContent = "Assando sua sorte...";
-
-            // 1. Decidir o prêmio secretamente com a matemática antes de rodar
-            const indiceSorteado = sortearIndicePremio();
-            const premioSorteado = PREMIOS[indiceSorteado];
-
-            // 2. Calcular o ângulo final de rotação
-            // Queremos que a fatia sorteada pare exatamente no ponteiro (topo: Math.PI * 1.5)
-            const voltasCompletas = 5 + Math.floor(Math.random() * 3); // 5 a 8 voltas para criar suspense
-            const sliceCenterAngle = (indiceSorteado * sliceAngle) + (sliceAngle / 2);
-            // Inverter para alinhar com o topo do ponteiro
-            const targetRotationValue = (voltasCompletas * 2 * Math.PI) + (Math.PI * 1.5) - sliceCenterAngle;
-
-            // 3. Executar Animação de Giro
-            runSpinAnimation(targetRotationValue, async () => {
-                const voucherCode = "POINT-" + Math.floor(1000 + Math.random() * 9000);
-                
-                // Gravar no banco de dados selecionado (Nuvem ou Local)
-                const payload = {
-                    nome: cliente.nome,
-                    telefone: cliente.telefone,
-                    cpf: cliente.cpf,
-                    premio: premioSorteado.nome,
-                    codigo: voucherCode,
-                    dataHora: new Date().toISOString()
-                };
-
-                try {
-                    if (isLiveMode) {
-                        await setDoc(doc(db, "leads_roleta", cliente.cpf), payload);
-                    } else {
-                        localStorage.setItem(`roleta_lead_${cliente.cpf}`, JSON.stringify(payload));
-                    }
-
-                    // Disparar Confetes de Vitória
-                    confetti({
-                        particleCount: 150,
-                        spread: 80,
-                        origin: { y: 0.6 },
-                        colors: ['#dfb15b', '#4a0e17', '#ffffff']
-                    });
-
-                    // Atualizar Tela de Vitória
-                    document.getElementById('winner-name-display').textContent = cliente.nome.split(' ')[0];
-                    document.getElementById('winner-prize-text').textContent = premioSorteado.nome;
-                    document.getElementById('voucher-code-display').textContent = voucherCode;
-
-                    // Gerar o Link de Resgate no WhatsApp do Atendimento
-                    const mensagemWhatsApp = encodeURIComponent(
-                        `Olá Point da Pizza! Acabei de jogar a Roleta do Dia da Pizza e ganhei: *${premioSorteado.nome}*!\n\nMeus dados:\nNome: ${cliente.nome}\nCPF: ${cliente.cpf}\nCódigo do Cupom: ${voucherCode}`
-                    );
-                    document.getElementById('btn-share-whatsapp').href = `https://wa.me/5514999999999?text=${mensagemWhatsApp}`; // Altere para o Whatsapp real da sua pizzaria
-
-                    // Seguir para a tela final de sucesso
-                    transicaoEtapa('sec-roleta', 'sec-premio');
-
-                } catch (err) {
-                    console.error(err);
-                    alert("Ops! Houve um problema ao salvar seu prêmio. Por favor, tente girar de novo.");
-                    btnGirar.disabled = false;
-                    btnGirar.textContent = "🍕 Girar Roleta!";
+            for (let i = 0; i < PRIZES.length; i++) {
+                cumulative += PRIZES[i].prob;
+                if (random <= cumulative) {
+                    return PRIZES[i];
                 }
-            });
+            }
+            return PRIZES[0];
+        }
+
+        function iniciarGiroRoleta() {
+            if (isSpinning) return;
+            isSpinning = true;
+
+            const selectedPrize = sortearPremio();
+            const sliceRad = (Math.PI * 2) / PRIZES.length;
+            
+            // Calcula o ângulo para alinhar a fatia selecionada com o topo
+            const centerOfSlice = (selectedPrize.id * sliceRad) + (sliceRad / 2);
+            const targetStoppingRads = (Math.PI * 1.5) - centerOfSlice;
+            
+            const fullSpins = Math.PI * 2 * 10; 
+            const finalRotation = fullSpins + targetStoppingRads;
+
+            const startTime = performance.now();
+            const duration = 5000; // 5 segundos de expectativa
+
+            function animateSpin(currentTime) {
+                const elapsed = currentTime - startTime;
+                const t = Math.min(elapsed / duration, 1);
+                
+                const easeOut = 1 - Math.pow(1 - t, 4);
+                currentRotation = easeOut * finalRotation;
+                
+                drawPizzaWheel();
+
+                if (t < 1) {
+                    requestAnimationFrame(animateSpin);
+                } else {
+                    finalizarJogo(selectedPrize);
+                }
+            }
+
+            requestAnimationFrame(animateSpin);
+        }
+
+        async function finalizarJogo(prize) {
+            const parsedCpf = currentParticipant.cpf;
+            
+            const newWinnerLog = {
+                nome: currentParticipant.nome,
+                cpf: parsedCpf.slice(0, 3) + ".***.***-" + parsedCpf.slice(9),
+                premio: prize.name,
+                telefone: currentParticipant.telefone,
+                dataHora: new Date().toLocaleString('pt-BR')
+            };
+
+            try {
+                if (isFirebaseActive) {
+                    await db.collection("clientes_roleta").doc(parsedCpf).set(newWinnerLog);
+                } else {
+                    localStorage.setItem(`pizza_lead_${parsedCpf}`, JSON.stringify(newWinnerLog));
+                }
+
+                // Exibe popup final de resultado
+                displayPremioTexto.textContent = prize.name;
+                displayPremioDesc.textContent = prize.desc;
+                popupResultado.classList.remove('hidden');
+
+            } catch (err) {
+                console.error(err);
+                showPopupError("Ocorreu um erro ao salvar o prêmio. Apresente esta tela ao gerente.");
+            } finally {
+                isSpinning = false;
+                btnMainAction.disabled = false;
+                btnMainAction.innerHTML = `<i class="fa-solid fa-ticket"></i><span>CADASTRAR E GIRAR</span>`;
+            }
+        }
+
+        // Caso o usuário queira voltar para o início
+        btnReiniciar.addEventListener('click', () => {
+            formPopup.reset();
+            popupResultado.classList.add('hidden');
+            popupCadastro.classList.remove('hidden');
+            btnPopupSubmit.disabled = false;
+            btnPopupSubmit.innerHTML = `<span>LIBERAR MEU GIRO</span> <i class="fa-solid fa-arrow-right"></i>`;
+            currentRotation = 0;
+            drawPizzaWheel();
         });
 
-        // --- Máscaras de Entrada (Fácil preenchimento) ---
-        inputCpf.addEventListener('input', (e) => {
-            let val = e.target.value.replace(/\D/g, "");
-            if (val.length > 11) val = val.slice(0, 11);
-            if (val.length > 9) {
-                val = val.replace(/^(\d{3})(\d{3})(\d{3})(\d{1,2})$/, "$1.$2.$3-$4");
-            } else if (val.length > 6) {
-                val = val.replace(/^(\d{3})(\d{3})(\d{1,3})$/, "$1.$2.$3");
-            } else if (val.length > 3) {
-                val = val.replace(/^(\d{3})(\d{1,3})$/, "$1.$2");
+        // Clique no botão "Cadastrar e Girar" do fundo abre o popup se ele estiver fechado
+        btnMainAction.addEventListener('click', () => {
+            if (!isSpinning) {
+                popupCadastro.classList.remove('hidden');
             }
-            e.target.value = val;
-        });
-
-        inputTelefone.addEventListener('input', (e) => {
-            let val = e.target.value.replace(/\D/g, "");
-            if (val.length > 11) val = val.slice(0, 11);
-            if (val.length > 6) {
-                val = val.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
-            } else if (val.length > 2) {
-                val = val.replace(/^(\d{2})(\d{1,5})$/, "($1) $2");
-            }
-            e.target.value = val;
         });
     </script>
 </body>
