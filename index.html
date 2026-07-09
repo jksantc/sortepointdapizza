@@ -2,7 +2,8 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Tag restritiva para travar zoom e tamanho em qualquer dispositivo -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no">
   <title>Dia da Pizza - Point da Pizza</title>
   <link rel="icon" href="p-logo.png" type="image/png">
   
@@ -12,14 +13,23 @@
   <style>
     .font-impact { font-family: Impact, Anton, sans-serif; font-weight: normal; letter-spacing: 1px; }
     .font-texto { font-family: 'Inter', Arial, sans-serif; }
-    body { background-color: #f8f8f8; overflow-x: hidden; }
-    .modal-backdrop { background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); }
+    
+    /* Regras rigorosas para impedir a tela de "sambar" ou dar zoom no mobile */
+    html, body { 
+      background-color: #f8f8f8; 
+      overflow-x: hidden; 
+      overscroll-behavior-y: none;
+      touch-action: pan-y;
+      -webkit-text-size-adjust: 100%;
+    }
+    
+    .modal-backdrop { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(6px); }
     
     @keyframes slideIn {
-      0% { opacity: 0; transform: translateX(20px); }
-      10% { opacity: 1; transform: translateX(0); }
-      90% { opacity: 1; transform: translateX(0); }
-      100% { opacity: 0; transform: translateX(20px); }
+      0% { opacity: 0; transform: translateY(-20px); }
+      10% { opacity: 1; transform: translateY(0); }
+      90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-20px); }
     }
     .toast-animado { animation: slideIn 5s ease-in-out infinite; }
   </style>
@@ -27,20 +37,44 @@
 <body class="font-texto text-gray-800 min-h-screen flex flex-col relative">
 
   <header class="w-full bg-[#AA0000] p-4 flex justify-center items-center shadow-md z-30 relative">
-    <img src="p-logo.png" alt="Point da Pizza" class="h-12 object-contain drop-shadow-sm">
+    <img src="p-logo.png" alt="Point da Pizza" class="h-10 md:h-12 object-contain drop-shadow-sm">
   </header>
 
-  <main class="flex-grow w-full max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-center relative py-10 px-4">
+  <main class="flex-grow w-full max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-center relative py-8 px-4">
     
-    <div class="lg:absolute lg:left-8 lg:top-1/2 lg:-translate-y-1/2 w-full max-w-sm order-2 lg:order-none mt-10 lg:mt-0 z-0">
-      <div class="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-[#AA0000]">
-        <h3 class="font-impact text-2xl text-[#AA0000] uppercase mb-2">A Tradição da Pizza</h3>
-        <p class="text-sm text-gray-600 mb-4 leading-relaxed">
+    <!-- Centro: A Roleta (Aparece primeiro no mobile) -->
+    <div class="relative z-10 flex flex-col items-center order-1 lg:order-none w-full max-w-[320px] md:max-w-[450px]">
+      
+      <!-- Seta (Emoji de Pizza 🍕) apontando para baixo -->
+      <div class="absolute -top-6 md:-top-8 z-20 text-5xl md:text-6xl drop-shadow-xl transform rotate-[135deg]">🍕</div>
+      
+      <div class="relative w-full aspect-square mt-2 md:mt-4">
+        <!-- Roleta HD -->
+        <canvas id="wheel" width="1000" height="1000" class="w-full h-full transition-transform duration-[4000ms] ease-[cubic-bezier(0.1,0.8,0.2,1)] drop-shadow-2xl rounded-full border-4 border-[#AA0000]"></canvas>
+        
+        <!-- Logo Central -->
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-20 h-20 md:w-28 md:h-28 bg-white rounded-full flex items-center justify-center shadow-inner border-[4px] border-[#fcd34d] z-10">
+          <img src="p-logo.png" alt="Logo" class="w-12 h-12 md:w-16 md:h-16 object-contain">
+        </div>
+      </div>
+
+      <div id="area-botao-girar" class="mt-6 md:mt-8 w-full hidden">
+        <button id="btn-girar" class="w-full bg-[#AA0000] hover:bg-red-800 text-white font-impact tracking-widest text-2xl md:text-3xl py-4 md:py-5 rounded-xl shadow-[0_8px_20px_rgba(170,0,0,0.4)] uppercase transition-transform transform hover:scale-105 border-b-4 border-red-900">
+          GIRAR A ROLETA!
+        </button>
+      </div>
+    </div>
+
+    <!-- Lado Esquerdo / Abaixo no Mobile: História -->
+    <div class="lg:absolute lg:left-8 lg:top-1/2 lg:-translate-y-1/2 w-full max-w-sm order-2 lg:order-none mt-8 mb-12 lg:my-0 z-0">
+      <div class="bg-white p-5 md:p-6 rounded-2xl shadow-lg border-t-4 border-[#AA0000]">
+        <h3 class="font-impact text-xl md:text-2xl text-[#AA0000] uppercase mb-2">A Tradição da Pizza</h3>
+        <p class="text-xs md:text-sm text-gray-600 mb-4 leading-relaxed">
           Comemorado em 10 de julho, o Dia da Pizza é uma tradição nacional. Para celebrar com nossos clientes, o Point da Pizza preparou esta roleta exclusiva!
         </p>
         <div class="bg-red-50 p-3 rounded-lg border border-red-100">
           <p class="text-xs font-bold text-[#AA0000] uppercase mb-1">Regras:</p>
-          <ul class="text-xs text-gray-700 list-disc pl-4 space-y-1">
+          <ul class="text-[11px] md:text-xs text-gray-700 list-disc pl-4 space-y-1">
             <li>Apenas 1 giro por CPF e Telefone.</li>
             <li>Tire print do prêmio para resgatar.</li>
           </ul>
@@ -48,41 +82,14 @@
       </div>
     </div>
 
-    <!-- Centro: A Roleta -->
-    <div class="relative z-10 flex flex-col items-center order-1 lg:order-none w-full max-w-[350px] md:max-w-[480px]">
-      
-      <svg class="absolute -top-6 z-20 w-16 h-16 drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]" viewBox="0 0 100 100">
-        <path d="M10 25 L50 90 L90 25 Z" fill="#fcd34d" stroke="#d97706" stroke-width="2"/>
-        <path d="M5 25 Q 50 5 95 25" fill="none" stroke="#b45309" stroke-width="14" stroke-linecap="round"/>
-        <circle cx="50" cy="45" r="5" fill="#AA0000"/>
-        <circle cx="35" cy="60" r="4.5" fill="#AA0000"/>
-        <circle cx="65" cy="55" r="4" fill="#AA0000"/>
-        <circle cx="50" cy="70" r="3.5" fill="#AA0000"/>
-      </svg>
-      
-      <div class="relative w-full aspect-square mt-4">
-        <canvas id="wheel" width="1000" height="1000" class="w-full h-full transition-transform duration-[4000ms] ease-[cubic-bezier(0.1,0.8,0.2,1)] drop-shadow-2xl rounded-full border-4 border-[#AA0000]"></canvas>
-        
-        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-20 h-20 md:w-28 md:h-28 bg-[#AA0000] rounded-full flex items-center justify-center shadow-inner border-[4px] border-[#fcd34d] z-10">
-          <img src="p-logo.png" alt="Logo" class="w-12 h-12 md:w-16 md:h-16 object-contain">
-        </div>
-      </div>
-
-      <div id="area-botao-girar" class="mt-8 w-full hidden">
-        <button id="btn-girar" class="w-full bg-[#AA0000] hover:bg-red-800 text-white font-impact tracking-widest text-3xl py-5 rounded-xl shadow-[0_8px_20px_rgba(170,0,0,0.4)] uppercase transition-transform transform hover:scale-105 border-b-4 border-red-900">
-          GIRAR A ROLETA!
-        </button>
-      </div>
-    </div>
-
-    <!-- Prova Social -->
-    <div id="social-proof" class="fixed lg:absolute bottom-4 right-4 lg:bottom-10 lg:right-10 bg-white border-l-4 border-green-500 shadow-xl rounded-r-lg p-3 flex items-center gap-3 z-30 toast-animado hidden md:flex">
-      <div class="bg-green-100 p-2 rounded-full">
+    <!-- Prova Social (Agora visível e arrumado no mobile) -->
+    <div id="social-proof" class="fixed top-20 right-4 lg:top-auto lg:bottom-10 lg:right-10 bg-white border-l-4 border-green-500 shadow-xl rounded-r-lg p-2 md:p-3 flex items-center gap-2 md:gap-3 z-[60] toast-animado">
+      <div class="bg-green-100 p-1.5 md:p-2 rounded-full">
         <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
       </div>
       <div>
-        <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Acabou de ganhar</p>
-        <p id="social-proof-text" class="text-sm font-bold text-gray-800">Mariana S. - 20% OFF</p>
+        <p class="text-[9px] md:text-[10px] text-gray-500 uppercase font-bold tracking-wider">Acabou de ganhar</p>
+        <p id="social-proof-text" class="text-xs md:text-sm font-bold text-gray-800">Mariana S. - 20% OFF</p>
       </div>
     </div>
 
@@ -97,7 +104,6 @@
       
       <form id="form-cadastro" class="flex flex-col gap-3 text-left">
         
-        <!-- SELEÇÃO DE MODO -->
         <div class="flex gap-2">
           <label class="flex-1 cursor-pointer">
             <input type="radio" name="modo_jogo" value="delivery" class="peer hidden" checked>
@@ -113,27 +119,26 @@
           </label>
         </div>
 
-        <!-- AVISO DO SALÃO (Oculto por padrão) -->
         <div id="aviso-salao" class="hidden bg-yellow-50 border-l-4 border-yellow-500 p-2 text-[10px] text-yellow-800 rounded">
-          <strong>Atenção:</strong> Válido apenas para clientes que <strong>ESTÃO NO SALÃO</strong>.<br>Não cumulativo com outras promoções do salão.
+          <strong>Atenção:</strong> Válido apenas para clientes que <strong>ESTÃO NO SALÃO</strong>.<br>Não cumulativo com outras promoções.
         </div>
 
         <div>
           <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Nome Completo</label>
-          <input type="text" id="input-nome" required class="w-full mt-1 p-2 md:p-3 bg-gray-50 border border-gray-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#AA0000] focus:ring-2 focus:ring-red-200 transition-all text-sm">
+          <input type="text" id="input-nome" required class="w-full mt-1 p-2.5 md:p-3 bg-gray-50 border border-gray-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#AA0000] focus:ring-2 focus:ring-red-200 transition-all text-sm">
         </div>
         <div>
           <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">WhatsApp (com DDD)</label>
-          <input type="tel" id="input-telefone" required placeholder="Ex: 19988887777" class="w-full mt-1 p-2 md:p-3 bg-gray-50 border border-gray-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#AA0000] focus:ring-2 focus:ring-red-200 transition-all text-sm">
+          <input type="tel" id="input-telefone" required placeholder="Ex: 19988887777" class="w-full mt-1 p-2.5 md:p-3 bg-gray-50 border border-gray-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#AA0000] focus:ring-2 focus:ring-red-200 transition-all text-sm">
         </div>
         <div>
           <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">CPF (Apenas números)</label>
-          <input type="text" id="input-cpf" required maxlength="11" placeholder="Ex: 12345678900" class="w-full mt-1 p-2 md:p-3 bg-gray-50 border border-gray-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#AA0000] focus:ring-2 focus:ring-red-200 transition-all text-sm">
+          <input type="text" id="input-cpf" required maxlength="11" placeholder="Ex: 12345678900" class="w-full mt-1 p-2.5 md:p-3 bg-gray-50 border border-gray-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#AA0000] focus:ring-2 focus:ring-red-200 transition-all text-sm">
         </div>
         
         <p id="erro-msg" class="text-red-600 text-xs font-bold text-center bg-red-50 p-2 rounded hidden"></p>
         
-        <button type="submit" id="btn-liberar" class="mt-2 w-full bg-[#AA0000] hover:bg-red-800 text-white font-bold py-3 rounded-xl text-lg uppercase transition-transform transform hover:scale-[1.02] shadow-md">
+        <button type="submit" id="btn-liberar" class="mt-2 w-full bg-[#AA0000] hover:bg-red-800 text-white font-bold py-3 rounded-xl text-lg uppercase transition-transform transform hover:scale-[1.02] shadow-md border-b-4 border-red-900">
           Liberar Roleta
         </button>
       </form>
@@ -142,31 +147,29 @@
 
   <!-- MODAL 2: PRÊMIO -->
   <div id="modal-premio" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop px-4 hidden">
-    <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-8 text-center relative overflow-hidden">
+    <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 md:p-8 text-center relative overflow-hidden">
       <div class="absolute top-0 left-0 w-full h-2 bg-[#AA0000]"></div>
       
       <h2 class="font-impact text-4xl text-[#AA0000] uppercase mb-1 mt-2">PARABÉNS!</h2>
       <p class="text-gray-600 text-sm mb-4">Seu prêmio foi gerado com sucesso:</p>
       
       <div class="bg-gray-50 py-5 px-4 rounded-xl mb-6 border-2 border-dashed border-[#AA0000]">
-        <span id="premio-texto" class="font-impact text-3xl text-gray-800 uppercase tracking-wide">---</span>
+        <span id="premio-texto" class="font-impact text-3xl text-gray-800 uppercase tracking-wide leading-none">---</span>
       </div>
 
       <p id="instrucao-print" class="text-sm font-bold text-yellow-600 mb-1">⚠️ Tire um print desta tela agora!</p>
       <p id="instrucao-sub" class="text-xs text-gray-500 mb-6">Envie o print no nosso WhatsApp para garantir seu prêmio.</p>
       
-      <!-- BOTÃO DELIVERY -->
-      <a id="btn-whatsapp" href="#" target="_blank" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl text-lg transition-colors shadow-lg flex items-center justify-center gap-2 mb-4">
+      <a id="btn-whatsapp" href="#" target="_blank" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3.5 md:py-4 rounded-xl text-lg transition-colors shadow-lg flex items-center justify-center gap-2 mb-4">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.347-.272.297-1.04 1.016-1.04 2.479 0 1.463 1.065 2.876 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
         Resgatar no WhatsApp
       </a>
 
-      <!-- AVISO SALÃO -->
-      <div id="msg-resgate-salao" class="w-full bg-[#AA0000] text-white font-bold py-4 rounded-xl text-lg shadow-lg hidden mb-4">
+      <div id="msg-resgate-salao" class="w-full bg-[#AA0000] text-white font-bold py-3.5 md:py-4 rounded-xl text-lg shadow-lg hidden mb-4 border-b-4 border-red-900">
         🍽️ Apresente no Caixa
       </div>
 
-      <button id="btn-voltar" class="w-full bg-transparent border border-gray-300 hover:bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm transition-colors">
+      <button id="btn-voltar" class="w-full bg-transparent border border-gray-300 hover:bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-xs md:text-sm transition-colors">
         Voltar para a tela inicial
       </button>
     </div>
@@ -177,7 +180,7 @@
     import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     // ==========================================
-    // ⚠️ COLE AS SUAS CREDENCIAIS AQUI DENTRO!
+    // ⚠️ CREDENCIAIS DO FIREBASE MANTIDAS INTACTAS
     // ==========================================
     const firebaseConfig = {
       apiKey: "SUA_API_KEY_AQUI",
@@ -191,28 +194,24 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // ==========================================
-    // LISTAS DE PRÊMIOS POR MODO
-    // ==========================================
     const PREMIOS_DELIVERY = [
-      { nome: "10% OFF", chance: 45, bg: "#AA0000", text: "#FFFFFF" },
-      { nome: "20% OFF", chance: 30, bg: "#FFFFFF", text: "#AA0000" },
-      { nome: "BROTO DOCE", chance: 15, bg: "#AA0000", text: "#FFFFFF" },
-      { nome: "PIZZA INTEIRA", chance: 8, bg: "#FFFFFF", text: "#AA0000" },
-      { nome: "RODÍZIO GRÁTIS", chance: 2, bg: "#fcd34d", text: "#AA0000" } 
+      { nome: "10% OFF", chance: 45, bg: "#AA0000", text: "#FFFFFF", brilho: false },
+      { nome: "20% OFF", chance: 30, bg: "#FFFFFF", text: "#AA0000", brilho: false },
+      { nome: "BROTO DOCE", chance: 15, bg: "#AA0000", text: "#FFFFFF", brilho: false },
+      { nome: "PIZZA INTEIRA", chance: 8, bg: "#FFFFFF", text: "#AA0000", brilho: false },
+      { nome: "RODÍZIO GRÁTIS", chance: 2, bg: "#fcd34d", text: "#AA0000", brilho: true } 
     ];
 
     const PREMIOS_SALAO = [
-      { nome: "5% OFF", chance: 50, bg: "#AA0000", text: "#FFFFFF" },
-      { nome: "8% OFF", chance: 40, bg: "#FFFFFF", text: "#AA0000" },
-      { nome: "UM DRINK", chance: 7, bg: "#AA0000", text: "#FFFFFF" },
-      { nome: "VALE RODÍZIO", chance: 3, bg: "#fcd34d", text: "#AA0000" } 
+      { nome: "5% OFF", chance: 50, bg: "#AA0000", text: "#FFFFFF", brilho: false },
+      { nome: "8% OFF", chance: 40, bg: "#FFFFFF", text: "#AA0000", brilho: false },
+      { nome: "UM DRINK", chance: 7, bg: "#AA0000", text: "#FFFFFF", brilho: false },
+      { nome: "VALE RODÍZIO", chance: 3, bg: "#fcd34d", text: "#AA0000", brilho: true } 
     ];
 
     let modoAtual = "delivery";
     let premiosAtuais = PREMIOS_DELIVERY;
 
-    // EVENTO DE TROCA DE MODO
     document.querySelectorAll('input[name="modo_jogo"]').forEach(radio => {
       radio.addEventListener('change', (e) => {
         modoAtual = e.target.value;
@@ -223,21 +222,18 @@
           document.getElementById('aviso-salao').classList.add('hidden');
           premiosAtuais = PREMIOS_DELIVERY;
         }
-        drawWheel(); // Atualiza o desenho da roleta na hora!
+        drawWheel();
       });
     });
 
     const canvas = document.getElementById("wheel");
     const ctx = canvas.getContext("2d");
-    
     const centerX = 500; 
     const centerY = 500;
     const radius = 480; 
 
     function drawWheel() {
-      // Limpa a roleta antes de desenhar
       ctx.clearRect(0, 0, 1000, 1000);
-      
       const sliceAngle = (2 * Math.PI) / premiosAtuais.length;
 
       for (let i = 0; i < premiosAtuais.length; i++) {
@@ -248,8 +244,19 @@
         ctx.moveTo(centerX, centerY);
         ctx.arc(centerX, centerY, radius, startAngle, endAngle);
         
+        // Efeito de brilho apenas no prêmio destaque
+        if(premiosAtuais[i].brilho) {
+            ctx.shadowColor = "#fcd34d";
+            ctx.shadowBlur = 40;
+        } else {
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+        }
+
         ctx.fillStyle = premiosAtuais[i].bg;
         ctx.fill();
+        
+        ctx.shadowBlur = 0; // Reseta sombra para não borrar a borda
         ctx.lineWidth = 4;
         ctx.strokeStyle = "#800000";
         ctx.stroke();
@@ -262,14 +269,29 @@
         ctx.textBaseline = "middle";
         ctx.fillStyle = premiosAtuais[i].text;
         
-        ctx.font = "bold 48px 'Inter', Arial, sans-serif";
-        ctx.fillText(premiosAtuais[i].nome, radius - 45, 0);
+        // ==========================================
+        // QUEBRA DE LINHA INTELIGENTE PARA NOMES LONGOS
+        // ==========================================
+        const textoCompleto = premiosAtuais[i].nome;
+        const palavras = textoCompleto.split(' ');
+
+        // Ajuste de fonte menor para caber melhor na quebra
+        ctx.font = "bold 44px 'Inter', Arial, sans-serif";
+        
+        if (palavras.length > 1 && textoCompleto.length > 9) {
+            // Se tiver mais de uma palavra, quebra em duas linhas
+            ctx.fillText(palavras[0], radius - 55, -22);
+            ctx.fillText(palavras.slice(1).join(' '), radius - 55, 22);
+        } else {
+            // Se for uma palavra curta ou pequena, mantém em uma linha
+            ctx.fillText(textoCompleto, radius - 55, 0);
+        }
+        
         ctx.restore();
       }
     }
-    drawWheel(); // Desenha a inicial (Delivery)
+    drawWheel();
 
-    // PROVA SOCIAL MISTA
     const socialProofText = document.getElementById('social-proof-text');
     const nomesFakes = ["Carlos M.", "Ana J.", "Pedro H.", "Juliana T.", "Marcos P.", "Fernanda R."];
     setInterval(() => {
@@ -278,7 +300,6 @@
       socialProofText.textContent = `${nomeSort} - ${premioSort}`;
     }, 5000);
 
-    // LÓGICA DE GESTÃO
     const formCadastro = document.getElementById('form-cadastro');
     const modalCadastro = document.getElementById('modal-cadastro');
     const erroMsg = document.getElementById('erro-msg');
@@ -335,7 +356,6 @@
       document.getElementById('btn-liberar').disabled = false;
     }
 
-    // DISPARO DA ROLETA
     btnGirar.addEventListener('click', async () => {
       btnGirar.disabled = true;
       btnGirar.textContent = "GIRANDO...";
@@ -357,7 +377,6 @@
 
       setTimeout(async () => {
         try {
-          // SALVANDO NO BANCO COM A INFORMAÇÃO DO MODO (Salão ou Delivery)
           await setDoc(doc(db, "clientes_roleta", dadosCliente.cpf), {
             nome: dadosCliente.nome, 
             telefone: dadosCliente.telefone, 
@@ -367,9 +386,9 @@
             dataHora: new Date().toISOString()
           });
 
-          document.getElementById('premio-texto').textContent = premioEscolhido;
+          // Mostra o texto quebrando as linhas caso precise no popup final também
+          document.getElementById('premio-texto').innerHTML = premioEscolhido.replace(" ", "<br>");
           
-          // VERIFICA QUAL TELA FINAL EXIBIR
           if (dadosCliente.modo === 'salao') {
             document.getElementById('btn-whatsapp').classList.add('hidden');
             document.getElementById('msg-resgate-salao').classList.remove('hidden');
@@ -401,7 +420,6 @@
       liberarBotao();
       canvas.style.transform = `rotate(0deg)`;
       
-      // Reseta a roleta para o padrão Delivery ao voltar
       modoAtual = "delivery";
       premiosAtuais = PREMIOS_DELIVERY;
       document.getElementById('aviso-salao').classList.add('hidden');
