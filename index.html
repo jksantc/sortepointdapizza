@@ -228,7 +228,6 @@
     const corBranco = "#FFFFFF";
     const corDestaque = "#fcd34d"; 
 
-    // Valores padrão PIZZA CALABRESA
     let PREMIOS_DELIVERY = [
       { nome: "10% OFF", chance: 45, bg: corVermelho, text: corBranco, brilho: false },
       { nome: "20% OFF", chance: 30, bg: corBranco, text: corVermelho, brilho: false },
@@ -248,12 +247,27 @@
     let premiosAtuais = PREMIOS_DELIVERY;
     let permiteMultiplosGiros = false;
 
-    // LÓGICA DE PROBABILIDADE ATUALIZANDO EM TEMPO REAL E CARREGANDO A OPÇÃO DE TESTE
+    // VALIDADOR DE CPF MATEMÁTICO REAL
+    function validarCPF(cpf) {
+        cpf = cpf.replace(/[^\d]+/g, '');
+        if (cpf === '' || cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+        let soma = 0, resto;
+        for (let i = 1; i <= 9; i++) soma = soma + parseInt(cpf.substring(i - 1, i)) * (11 - i);
+        resto = (soma * 10) % 11;
+        if ((resto === 10) || (resto === 11)) resto = 0;
+        if (resto !== parseInt(cpf.substring(9, 10))) return false;
+        soma = 0;
+        for (let i = 1; i <= 10; i++) soma = soma + parseInt(cpf.substring(i - 1, i)) * (12 - i);
+        resto = (soma * 10) % 11;
+        if ((resto === 10) || (resto === 11)) resto = 0;
+        if (resto !== parseInt(cpf.substring(10, 11))) return false;
+        return true;
+    }
+
     function iniciarLeituraConfig() {
       onSnapshot(doc(db, "config_roleta", "probabilidades"), (configRef) => {
         if (configRef.exists()) {
             const dados = configRef.data();
-            
             permiteMultiplosGiros = dados.multiplosGiros || false;
 
             if(dados.delivery) {
@@ -303,7 +317,6 @@
     const centerY = 500;
     const radius = 480; 
 
-    // Desenho do Canvas (Quebra de linha inteligente)
     function drawWheel() {
       ctx.clearRect(0, 0, 1000, 1000);
       const sliceAngle = (2 * Math.PI) / premiosAtuais.length;
@@ -369,14 +382,14 @@
       const telefoneInput = document.getElementById('input-telefone').value.replace(/\D/g, '');
       const cpf = document.getElementById('input-cpf').value.replace(/\D/g, '');
 
-      if(cpf.length !== 11) return mostrarErro("CPF inválido. Digite 11 números.");
+      // VALIDAR CPF REAL
+      if (!validarCPF(cpf)) return mostrarErro("CPF inválido. Verifique os números digitados.");
       if(telefoneInput.length < 10 || telefoneInput.length > 11) return mostrarErro("Telefone inválido.");
 
       document.getElementById('btn-liberar').textContent = "Consultando...";
       document.getElementById('btn-liberar').disabled = true;
 
       try {
-        // CORREÇÃO: Apenas faz a verificação se a opção Múltiplos Giros NÃO estiver ativada
         if (!permiteMultiplosGiros) {
             const qCpf = query(collection(db, "clientes_roleta"), where("cpf", "==", cpf));
             const cpfSnap = await getDocs(qCpf);
@@ -452,7 +465,6 @@
 
       setTimeout(async () => {
         try {
-          // CORREÇÃO: Cria um ID único se estiver no modo múltiplos giros
           const docId = permiteMultiplosGiros ? `${dadosCliente.cpf}_${Date.now()}` : dadosCliente.cpf;
           
           await setDoc(doc(db, "clientes_roleta", docId), {
@@ -465,7 +477,6 @@
             dataHora: new Date().toISOString()
           });
 
-          // Frases atualizadas
           const descricoes = {
             "BROTO DOCE": "🎉 Você ganhou uma broto doce! Na compra de qualquer pizza, ela é sua gratuitamente.",
             "PIZZA CALABRESA": "🎉 Você ganhou uma pizza de Calabresa! Na compra de qualquer pizza, receba a sua de presente.",
