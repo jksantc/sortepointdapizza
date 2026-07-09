@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Point da Pizza</title>
+  <link rel="icon" href="p-logo.png" type="image/png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <script>
+    // Tailwind Config para habilitar Modo Escuro manual via classe
+    tailwind.config = { darkMode: 'class' }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .modal-backdrop { background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px); }
+  </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 h-screen flex flex-col relative transition-colors duration-300">
+
+  <!-- TELA DE LOGIN -->
+  <div id="login-screen" class="fixed inset-0 bg-[#AA0000] z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center">
+      <img src="p-logo.png" alt="Logo" class="h-20 mx-auto mb-4 bg-[#AA0000] rounded-full p-2 object-cover shadow-lg shadow-gray-200/50 dark:shadow-none">
+      <h2 class="text-2xl font-extrabold text-[#AA0000] dark:text-red-400 tracking-tight mb-6">Acesso Restrito</h2>
+      <input type="password" id="senha-admin" placeholder="Digite a senha" class="w-full p-3 bg-gray-50 dark:bg-gray-700 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-red-100 text-center mb-4 transition-all shadow-sm">
+      <p id="erro-login" class="text-red-500 text-sm font-bold hidden mb-4">Senha incorreta!</p>
+      <button id="btn-login" class="w-full bg-[#AA0000] hover:bg-red-800 text-white font-bold py-3 rounded-xl transition-colors shadow-lg">Entrar no Painel</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard-screen" class="hidden flex-col h-full">
+    
+    <!-- Cabeçalho (Limpo e com Botão Dark Mode) -->
+    <header class="bg-white dark:bg-gray-800 text-gray-800 dark:text-white p-4 shadow-sm flex justify-between items-center px-6 lg:px-8 z-10 transition-colors">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-[#AA0000] rounded-full overflow-hidden shadow-sm flex items-center justify-center">
+          <img src="p-logo.png" class="w-8 h-8 object-cover" alt="Logo">
+        </div>
+        <h1 class="text-xl font-extrabold tracking-tight">Point da Pizza <span class="font-normal opacity-50">| Admin</span></h1>
+      </div>
+      <div class="flex gap-2">
+        <button id="btn-theme-toggle" class="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm">🌙 Tema Escuro</button>
+        <button id="btn-abrir-senha" class="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm">Trocar Senha</button>
+        <button id="btn-sair" class="bg-gray-800 dark:bg-gray-600 text-white hover:bg-gray-900 px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm">Sair</button>
+      </div>
+    </header>
+
+    <main class="flex-grow p-4 lg:p-8 overflow-y-auto">
+      
+      <!-- Cards de Métricas -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none flex flex-col justify-center transition-colors">
+          <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Total de Leads</p>
+          <p id="total-jogadores" class="text-5xl font-extrabold text-gray-800 dark:text-white mt-1">0</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none flex flex-col justify-center transition-colors">
+          <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">No Salão</p>
+          <p id="total-salao" class="text-5xl font-extrabold text-blue-600 dark:text-blue-400 mt-1">0</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none flex flex-col justify-center transition-colors">
+          <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">No Delivery</p>
+          <p id="total-delivery" class="text-5xl font-extrabold text-green-600 dark:text-green-400 mt-1">0</p>
+        </div>
+      </div>
+
+      <!-- Configuração de Probabilidades e Botão Gráficos -->
+      <div class="flex flex-col md:flex-row justify-between items-end mb-4 gap-4">
+          <h2 class="text-lg font-extrabold text-gray-800 dark:text-white tracking-tight">⚙️ Ajustar Probabilidades</h2>
+          <div class="flex gap-2 w-full md:w-auto">
+            <button id="btn-abrir-metricas" class="flex-1 md:flex-none bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-xl transition-colors shadow-lg shadow-purple-200/50 dark:shadow-none flex items-center justify-center gap-2 text-sm">
+                <span>📊 Ver Métricas</span>
+            </button>
+            <button id="btn-salvar-config" class="flex-1 md:flex-none bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-xl transition-colors shadow-lg shadow-green-200/50 dark:shadow-none text-sm">Salvar Alterações</button>
+          </div>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none p-6 mb-8 transition-colors">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <!-- Delivery -->
+          <div class="bg-gray-50 dark:bg-gray-700 p-5 rounded-2xl shadow-inner transition-colors">
+            <h3 class="font-bold text-gray-700 dark:text-gray-200 text-lg mb-4 flex items-center gap-2">
+              <span class="text-xl">🛵</span> Modo Delivery
+            </h3>
+            <div class="space-y-3" id="config-delivery">
+              <div class="flex items-center bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm">
+                <input type="text" class="flex-1 p-3 bg-transparent text-sm font-semibold text-gray-800 dark:text-white focus:outline-none name-del">
+                <input type="number" class="w-16 p-3 bg-gray-50 dark:bg-gray-900 text-sm text-center focus:outline-none perc-del dark:text-white">
+                <div class="bg-gray-100 dark:bg-gray-800 p-3 text-gray-500 dark:text-gray-400 font-bold">%</div>
+              </div>
+              <div class="flex items-center bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm">
+                <input type="text" class="flex-1 p-3 bg-transparent text-sm font-semibold text-gray-800 dark:text-white focus:outline-none name-del">
+                <input type="number" class="w-16 p-3 bg-gray-50 dark:bg-gray-900 text-sm text-center focus:outline-none perc-del dark:text-white">
+                <div class="bg-gray-100 dark:bg-gray-800 p-3 text-gray-500 dark:text-gray-400 font-bold">%</div>
+              </div>
+              <div class="flex items-center bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm">
+                <input type="text" class="flex-1 p-3 text-sm font-semibold text-gray-800 dark:text-white focus:outline-none bg-transparent name-del">
+                <input type="number" class="w-16 p-3 bg-gray-50 dark:bg-gray-900 text-sm text-center focus:outline-none perc-del dark:text-white">
+                <div class="bg-gray-100 dark:bg-gray-800 p-3 text-gray-500 dark:text-gray-400 font-bold">%</div>
+              </div>
+              <div class="flex items-center bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm">
+                <input type="text" class="flex-1 p-3 text-sm font-semibold text-gray-800 dark:text-white focus:outline-none bg-transparent name-del">
+                <input type="number" class="w-16 p-3 bg-gray-50 dark:bg-gray-900 text-sm text-center focus:outline-none perc-del dark:text-white">
+                <div class="bg-gray-100 dark:bg-gray-800 p-3 text-gray-500 dark:text-gray-400 font-bold">%</div>
+              </div>
+              <div class="flex items-center bg-yellow-50 dark:bg-yellow-900/30 rounded-xl overflow-hidden shadow-sm">
+                <input type="text" class="flex-1 p-3 text-sm font-bold text-yellow-700 dark:text-yellow-500 bg-transparent focus:outline-none name-del">
+                <input type="number" class="w-16 p-3 text-sm text-center bg-yellow-100 dark:bg-yellow-800/50 text-yellow-800 dark:text-yellow-400 focus:outline-none perc-del">
+                <div class="bg-yellow-50 dark:bg-yellow-900/30 p-3 text-yellow-700 dark:text-yellow-500 font-bold">%</div>
+              </div>
+            </div>
+            <div class="mt-4 text-right text-sm text-gray-500 dark:text-gray-400">Soma Total: <span id="soma-del" class="font-bold text-green-500">100%</span></div>
+          </div>
+
+          <!-- Salão -->
+          <div class="bg-gray-50 dark:bg-gray-700 p-5 rounded-2xl shadow-inner transition-colors">
+            <h3 class="font-bold text-gray-700 dark:text-gray-200 text-lg mb-4 flex items-center gap-2">🍽️ Modo Salão</h3>
+            <div class="space-y-3" id="config-salao">
+              <div class="flex items-center bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm">
+                <input type="text" class="flex-1 p-3 bg-transparent text-sm font-semibold text-gray-800 dark:text-white focus:outline-none name-sal">
+                <input type="number" class="w-16 p-3 bg-gray-50 dark:bg-gray-900 text-sm text-center focus:outline-none perc-sal dark:text-white">
+                <div class="bg-gray-100 dark:bg-gray-800 p-3 text-gray-500 dark:text-gray-400 font-bold">%</div>
+              </div>
+              <div class="flex items-center bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm">
+                <input type="text" class="flex-1 p-3 bg-transparent text-sm font-semibold text-gray-800 dark:text-white focus:outline-none name-sal">
+                <input type="number" class="w-16 p-3 bg-gray-50 dark:bg-gray-900 text-sm text-center focus:outline-none perc-sal dark:text-white">
+                <div class="bg-gray-100 dark:bg-gray-800 p-3 text-gray-500 dark:text-gray-400 font-bold">%</div>
+              </div>
+              <div class="flex items-center bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm">
+                <input type="text" class="flex-1 p-3 bg-transparent text-sm font-semibold text-gray-800 dark:text-white focus:outline-none name-sal">
+                <input type="number" class="w-16 p-3 bg-gray-50 dark:bg-gray-900 text-sm text-center focus:outline-none perc-sal dark:text-white">
+                <div class="bg-gray-100 dark:bg-gray-800 p-3 text-gray-500 dark:text-gray-400 font-bold">%</div>
+              </div>
+              <div class="flex items-center bg-yellow-50 dark:bg-yellow-900/30 rounded-xl overflow-hidden shadow-sm">
+                <input type="text" class="flex-1 p-3 text-sm font-bold text-yellow-700 dark:text-yellow-500 bg-transparent focus:outline-none name-sal">
+                <input type="number" class="w-16 p-3 text-sm text-center bg-yellow-100 dark:bg-yellow-800/50 text-yellow-800 dark:text-yellow-400 focus:outline-none perc-sal">
+                <div class="bg-yellow-50 dark:bg-yellow-900/30 p-3 text-yellow-700 dark:text-yellow-500 font-bold">%</div>
+              </div>
+            </div>
+            <div class="mt-4 text-right text-sm text-gray-500 dark:text-gray-400">Soma Total: <span id="soma-sal" class="font-bold text-green-500">100%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none overflow-hidden flex flex-col h-[500px] transition-colors">
+        <div class="p-6 flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-gray-100 dark:border-gray-700">
+          <h2 class="text-lg font-extrabold text-gray-800 dark:text-white tracking-tight">📋 Últimos Ganhadores</h2>
+          <button id="btn-exportar" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-xl flex items-center gap-2 transition-colors shadow-sm text-sm">
+            Exportar Excel
+          </button>
+        </div>
+        
+        <div class="overflow-x-auto flex-grow scrollbar-hide">
+          <table class="w-full text-left border-collapse">
+            <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-300 text-xs uppercase font-bold sticky top-0 transition-colors">
+              <tr>
+                <th class="p-4">Data / Hora</th>
+                <th class="p-4">Nome</th>
+                <th class="p-4">WhatsApp</th>
+                <th class="p-4">CPF</th>
+                <th class="p-4">IP (Rede)</th>
+                <th class="p-4">Prêmio</th>
+                <th class="p-4">Modo</th>
+                <th class="p-4 text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-corpo" class="text-sm divide-y divide-gray-50 dark:divide-gray-700">
+              <tr><td colspan="8" class="p-4 text-center text-gray-400">Carregando dados...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL GRÁFICOS -->
+  <div id="modal-graficos" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop px-4 hidden">
+    <div class="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-3xl shadow-2xl p-8 relative transition-colors">
+      <button onclick="fecharGraficos()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <h2 class="text-2xl font-extrabold text-gray-800 dark:text-white tracking-tight mb-6 text-center">📊 Relatório de Saída de Prêmios</h2>
+      
+      <div class="flex justify-center gap-4 mb-6">
+        <label class="cursor-pointer flex items-center gap-2">
+          <input type="radio" name="tipo_grafico" value="bar" checked class="accent-purple-600">
+          <span class="text-sm font-bold text-gray-700 dark:text-gray-300">Colunas</span>
+        </label>
+        <label class="cursor-pointer flex items-center gap-2">
+          <input type="radio" name="tipo_grafico" value="pie" class="accent-purple-600">
+          <span class="text-sm font-bold text-gray-700 dark:text-gray-300">Pizza</span>
+        </label>
+      </div>
+
+      <div class="w-full h-[300px] relative">
+        <canvas id="graficoPremios"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL TROCAR SENHA -->
+  <div id="modal-senha" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop px-4 hidden">
+    <div class="bg-white dark:bg-gray-800 w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center relative transition-colors">
+      <h2 class="text-2xl font-extrabold text-[#AA0000] dark:text-red-400 tracking-tight mb-6">Trocar Senha</h2>
+      <div class="space-y-4 text-left">
+        <div>
+          <label class="text-[10px] font-extrabold text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">Senha Atual</label>
+          <input type="password" id="input-senha-atual" class="w-full mt-1 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl focus:outline-none dark:text-white transition-all shadow-sm">
+        </div>
+        <div>
+          <label class="text-[10px] font-extrabold text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">Nova Senha</label>
+          <input type="password" id="input-senha-nova" class="w-full mt-1 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl focus:outline-none dark:text-white transition-all shadow-sm">
+        </div>
+        <p id="msg-senha" class="text-sm font-bold text-center hidden"></p>
+        <div class="flex gap-3 mt-6">
+          <button id="btn-cancelar-senha" class="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-3 rounded-xl transition-colors shadow-sm">Cancelar</button>
+          <button id="btn-salvar-senha" class="flex-1 bg-[#AA0000] hover:bg-red-800 text-white font-bold py-3 rounded-xl transition-colors shadow-lg">Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, query, orderBy, doc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // ⚠️ CREDENCIAIS
+    const firebaseConfig = {
+      apiKey: "SUA_API_KEY_AQUI",
+      authDomain: "sorte-pointdapizza.firebaseapp.com",
+      projectId: "sorte-pointdapizza",
+      storageBucket: "sorte-pointdapizza.firebasestorage.app",
+      messagingSenderId: "761393097671",
+      appId: "1:761393097671:web:a032178908eff5dbf847e2"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // ==========================================
+    // MODO NOTURNO (DARK MODE)
+    // ==========================================
+    const htmlEl = document.documentElement;
+    const btnTheme = document.getElementById('btn-theme-toggle');
+
+    if(localStorage.getItem('admin_theme') === 'dark') {
+      htmlEl.classList.add('dark');
+      btnTheme.textContent = '☀️ Tema Claro';
+    }
+
+    btnTheme.addEventListener('click', () => {
+      htmlEl.classList.toggle('dark');
+      if(htmlEl.classList.contains('dark')) {
+        localStorage.setItem('admin_theme', 'dark');
+        btnTheme.textContent = '☀️ Tema Claro';
+      } else {
+        localStorage.setItem('admin_theme', 'light');
+        btnTheme.textContent = '🌙 Tema Escuro';
+      }
+      // Redesenha gráfico com cores corretas p/ o fundo
+      if(!document.getElementById('modal-metricas').classList.contains('hidden')) {
+          const tipo = document.querySelector('input[name="tipo_grafico"]:checked').value;
+          desenharGrafico(tipo);
+      }
+    });
+
+    // ==========================================
+    // SISTEMA DE SESSÃO / SENHA
+    // ==========================================
+    async function verificarSenhaAdmin(senhaDigitada) {
+      let senhaReal = "pizza123"; 
+      try {
+        const authRef = await getDoc(doc(db, "config_roleta", "auth"));
+        if (authRef.exists()) { senhaReal = authRef.data().senha; } 
+        else { await setDoc(doc(db, "config_roleta", "auth"), { senha: "pizza123" }); }
+      } catch(e) {}
+      return senhaDigitada === senhaReal;
+    }
+    
+    function checarSessao() {
+      const loginTime = localStorage.getItem('admin_point_login');
+      if (loginTime) {
+        if ((Date.now() - parseInt(loginTime)) < (30 * 60 * 1000)) { 
+          liberarPainel();
+          return;
+        }
+      }
+      localStorage.removeItem('admin_point_login');
+    }
+    
+    function liberarPainel() {
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('dashboard-screen').classList.remove('hidden');
+      document.getElementById('dashboard-screen').classList.add('flex');
+      iniciarLeituraAoVivo(); 
+      carregarProbabilidadesDoBanco(); 
+    }
+
+    document.getElementById('btn-login').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-login');
+      btn.textContent = "Verificando..."; btn.disabled = true;
+      const senhaDigitada = document.getElementById('senha-admin').value;
+      const ehValida = await verificarSenhaAdmin(senhaDigitada);
+      
+      if(ehValida) {
+        localStorage.setItem('admin_point_login', Date.now()); 
+        liberarPainel();
+      } else {
+        document.getElementById('erro-login').classList.remove('hidden');
+        btn.textContent = "Entrar no Painel"; btn.disabled = false;
+      }
+    });
+
+    document.getElementById('btn-sair').addEventListener('click', () => {
+      localStorage.removeItem('admin_point_login');
+      location.reload();
+    });
+
+    checarSessao(); 
+
+    // Troca de Senha
+    document.getElementById('btn-abrir-senha').addEventListener('click', () => {
+      document.getElementById('modal-senha').classList.remove('hidden');
+      document.getElementById('input-senha-atual').value = '';
+      document.getElementById('input-senha-nova').value = '';
+      document.getElementById('msg-senha').classList.add('hidden');
+    });
+
+    document.getElementById('btn-cancelar-senha').addEventListener('click', () => {
+      document.getElementById('modal-senha').classList.add('hidden');
+    });
+
+    document.getElementById('btn-salvar-senha').addEventListener('click', async () => {
+      const atual = document.getElementById('input-senha-atual').value;
+      const nova = document.getElementById('input-senha-nova').value;
+      const msg = document.getElementById('msg-senha');
+      msg.classList.remove('hidden', 'text-green-600', 'text-red-600');
+      
+      if(!nova) { msg.textContent = "A nova senha não pode ser vazia."; msg.classList.add('text-red-600'); return; }
+
+      const ehValida = await verificarSenhaAdmin(atual);
+      if(ehValida) {
+        await setDoc(doc(db, "config_roleta", "auth"), { senha: nova });
+        msg.textContent = "Senha alterada com sucesso!"; msg.classList.add('text-green-600');
+        setTimeout(() => document.getElementById('modal-senha').classList.add('hidden'), 2000);
+      } else {
+        msg.textContent = "A senha atual está incorreta."; msg.classList.add('text-red-600');
+      }
+    });
+
+    // ==========================================
+    // GRÁFICOS (NO MODAL SEPARADO)
+    // ==========================================
+    let meuGrafico = null;
+    let dadosContagem = {};
+    const coresGrafico = ['#AA0000', '#fcd34d', '#25D366', '#3b82f6', '#f97316', '#8b5cf6', '#ec4899'];
+
+    window.desenharGrafico = function(tipo) {
+      const labels = Object.keys(dadosContagem);
+      const data = Object.values(dadosContagem);
+      if (meuGrafico) meuGrafico.destroy();
+      
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#e5e7eb' : '#374151';
+
+      const ctx = document.getElementById('graficoPremios').getContext('2d');
+      meuGrafico = new Chart(ctx, {
+        type: tipo,
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Vezes Sorteado',
+            data: data,
+            backgroundColor: tipo === 'pie' ? coresGrafico : '#AA0000',
+            borderRadius: tipo === 'bar' ? 6 : 0,
+            borderWidth: tipo === 'pie' ? 2 : 0,
+            borderColor: isDark ? '#1f2937' : '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          color: textColor,
+          plugins: { legend: { display: tipo === 'pie', position: 'right', labels: { color: textColor } } },
+          scales: tipo === 'bar' ? { 
+              y: { beginAtZero: true, ticks: { stepSize: 1, color: textColor }, grid: { color: isDark ? '#374151' : '#f3f4f6' } },
+              x: { ticks: { color: textColor }, grid: { display: false } }
+          } : {}
+        }
+      });
+    }
+
+    document.getElementById('btn-abrir-metricas').addEventListener('click', () => {
+      document.getElementById('modal-metricas').classList.remove('hidden');
+      const tipoSelecionado = document.querySelector('input[name="tipo_grafico"]:checked').value;
+      desenharGrafico(tipoSelecionado);
+    });
+
+    window.fecharGraficos = function() {
+      document.getElementById('modal-metricas').classList.add('hidden');
+    }
+
+    document.querySelectorAll('input[name="tipo_grafico"]').forEach(radio => {
+      radio.addEventListener('change', (e) => desenharGrafico(e.target.value));
+    });
+
+    // ==========================================
+    // CONFIGURAÇÕES E TABELA
+    // ==========================================
+    async function carregarProbabilidadesDoBanco() {
+      try {
+        const docSnap = await getDoc(doc(db, "config_roleta", "probabilidades"));
+        if (docSnap.exists()) {
+          const config = docSnap.data();
+          if(config.delivery) {
+            const nomesDel = document.querySelectorAll('.name-del'), percsDel = document.querySelectorAll('.perc-del');
+            config.delivery.forEach((item, i) => { if(nomesDel[i]) nomesDel[i].value = item.nome; if(percsDel[i]) percsDel[i].value = item.chance; });
+          }
+          if(config.salao) {
+            const nomesSal = document.querySelectorAll('.name-sal'), percsSal = document.querySelectorAll('.perc-sal');
+            config.salao.forEach((item, i) => { if(nomesSal[i]) nomesSal[i].value = item.nome; if(percsSal[i]) percsSal[i].value = item.chance; });
+          }
+          calcularTotais();
+        }
+      } catch (error) { }
+    }
+
+    let todosClientes = [];
+
+    function iniciarLeituraAoVivo() {
+      const q = query(collection(db, "clientes_roleta"), orderBy("dataHora", "desc"));
+      onSnapshot(q, (snapshot) => {
+        todosClientes = [];
+        dadosContagem = {}; 
+        let contSalao = 0, contDelivery = 0;
+        let htmlTabela = '';
+
+        snapshot.forEach((docSnap) => {
+          const cliente = docSnap.data();
+          todosClientes.push(cliente);
+          dadosContagem[cliente.premio] = (dadosContagem[cliente.premio] || 0) + 1;
+          if(cliente.modo === 'salao') contSalao++; else contDelivery++;
+
+          const dataCriacao = new Date(cliente.dataHora);
+          const dataFormatada = dataCriacao.toLocaleDateString('pt-BR') + ' <br><span class="text-gray-400 dark:text-gray-500">' + dataCriacao.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) + '</span>';
+
+          const tagModo = cliente.modo === 'salao' 
+            ? `<span class="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded text-[10px] font-bold uppercase shadow-sm">Salão</span>`
+            : `<span class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded text-[10px] font-bold uppercase shadow-sm">Delivery</span>`;
+
+          htmlTabela += `
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-50 dark:border-gray-800">
+              <td class="p-4 whitespace-nowrap text-gray-500 dark:text-gray-400 text-xs">${dataFormatada}</td>
+              <td class="p-4 font-bold text-gray-800 dark:text-gray-200">${cliente.nome}</td>
+              <td class="p-4"><a href="https://wa.me/55${cliente.telefone}" target="_blank" class="text-green-600 dark:text-green-400 hover:underline font-semibold">${cliente.telefone}</a></td>
+              <td class="p-4 text-gray-500 dark:text-gray-400 text-xs">${cliente.cpf}</td>
+              <td class="p-4 text-gray-400 dark:text-gray-500 text-xs font-mono">${cliente.ip || '-'}</td>
+              <td class="p-4 font-extrabold text-[#AA0000] dark:text-red-400 text-xs">${cliente.premio}</td>
+              <td class="p-4">${tagModo}</td>
+              <td class="p-4 text-center">
+                <button onclick="deletarCliente('${docSnap.id}')" class="text-red-300 hover:text-red-600 dark:hover:text-red-400 transition" title="Excluir Jogador">
+                  <svg class="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+
+        document.getElementById('total-jogadores').textContent = todosClientes.length;
+        document.getElementById('total-salao').textContent = contSalao;
+        document.getElementById('total-delivery').textContent = contDelivery;
+        document.getElementById('tabela-corpo').innerHTML = todosClientes.length === 0 ? '<tr><td colspan="8" class="p-4 text-center text-gray-400">Nenhum jogador ainda.</td></tr>' : htmlTabela;
+        
+        if(!document.getElementById('modal-metricas').classList.contains('hidden')) {
+           const tipoSelecionado = document.querySelector('input[name="tipo_grafico"]:checked').value;
+           desenharGrafico(tipoSelecionado);
+        }
+      });
+    }
+
+    window.deletarCliente = async (idDocumento) => {
+      if(confirm("Tem certeza que deseja excluir?")) { await deleteDoc(doc(db, "clientes_roleta", idDocumento)); }
+    };
+
+    function calcularTotais() {
+      let sumDel = 0; document.querySelectorAll('.perc-del').forEach(i => sumDel += Number(i.value));
+      document.getElementById('soma-del').textContent = sumDel + '%';
+      document.getElementById('soma-del').className = sumDel === 100 ? 'font-bold text-green-500' : 'font-bold text-red-500';
+      let sumSal = 0; document.querySelectorAll('.perc-sal').forEach(i => sumSal += Number(i.value));
+      document.getElementById('soma-sal').textContent = sumSal + '%';
+      document.getElementById('soma-sal').className = sumSal === 100 ? 'font-bold text-green-500' : 'font-bold text-red-500';
+    }
+
+    document.querySelectorAll('.perc-del, .perc-sal').forEach(i => i.addEventListener('input', calcularTotais));
+
+    document.getElementById('btn-salvar-config').addEventListener('click', async () => {
+      let sumDel = 0, sumSal = 0;
+      document.querySelectorAll('.perc-del').forEach(i => sumDel += Number(i.value));
+      document.querySelectorAll('.perc-sal').forEach(i => sumSal += Number(i.value));
+      if (sumDel !== 100 || sumSal !== 100) return alert("As porcentagens devem somar 100%!");
+
+      const btn = document.getElementById('btn-salvar-config');
+      btn.textContent = "Salvando..."; btn.disabled = true;
+
+      try {
+        const nd = document.querySelectorAll('.name-del'), pd = document.querySelectorAll('.perc-del');
+        let arrD = []; for (let i=0; i<nd.length; i++) arrD.push({ nome: nd[i].value, chance: Number(pd[i].value) });
+        const ns = document.querySelectorAll('.name-sal'), ps = document.querySelectorAll('.perc-sal');
+        let arrS = []; for (let i=0; i<ns.length; i++) arrS.push({ nome: ns[i].value, chance: Number(ps[i].value) });
+
+        await setDoc(doc(db, "config_roleta", "probabilidades"), { delivery: arrD, salao: arrS, atualizadoEm: new Date().toISOString() });
+        btn.textContent = "Salvo ✓"; btn.classList.replace("bg-green-500", "bg-emerald-500");
+        setTimeout(() => { btn.textContent = "Salvar Alterações"; btn.classList.replace("bg-emerald-500", "bg-green-500"); btn.disabled = false; }, 2000);
+      } catch (err) { alert("Erro ao salvar."); btn.disabled = false; }
+    });
+
+    document.getElementById('btn-exportar').addEventListener('click', () => {
+      if(todosClientes.length === 0) return;
+      let csv = "Data/Hora,Nome,WhatsApp,CPF,IP,Prêmio,Modo\n";
+      todosClientes.forEach(c => { csv += `${new Date(c.dataHora).toLocaleString('pt-BR')},"${c.nome}","${c.telefone}","${c.cpf}","${c.ip || '-'}","${c.premio}","${c.modo}"\n`; });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' }));
+      link.download = `ganhadores.csv`; link.click();
+    });
+
+  </script>
+</body>
+</html>
