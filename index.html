@@ -65,10 +65,10 @@
       </div>
     </div>
 
-    <!-- Lado Esquerdo: História -->
+    <!-- Lado Esquerdo: História / Informativo -->
     <div class="lg:absolute lg:left-8 lg:top-1/2 lg:-translate-y-1/2 w-full max-w-sm order-2 lg:order-none mt-10 mb-12 lg:my-0 z-0">
       <div class="bg-white/90 backdrop-blur-md p-6 md:p-8 rounded-3xl shadow-lg shadow-gray-200/50">
-        <h3 class="font-extrabold text-2xl text-[#AA0000] tracking-tight mb-2">A Tradição da Pizza</h3>
+        <h3 class="font-extrabold text-2xl text-[#AA0000] tracking-tight mb-2">POINT | DIA NACIONAL DA PIZZA!</h3>
         <p class="text-sm text-gray-500 mb-6 leading-relaxed">
           Comemorado em 10 de julho, o Dia da Pizza é uma tradição nacional. Para celebrar com nossos clientes, preparamos esta roleta exclusiva!
         </p>
@@ -145,22 +145,23 @@
   </div>
 
   <!-- MODAL 2: PRÊMIO -->
-  <div id="modal-premio" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop px-4 hidden overflow-y-auto">
-    <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 md:p-8 text-center relative overflow-hidden my-4">
+  <div id="modal-premio" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop px-4 hidden">
+    <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 md:p-8 text-center relative overflow-hidden">
       
       <h2 class="text-3xl font-extrabold text-[#AA0000] tracking-tight mb-2 mt-2">PARABÉNS, NOME!</h2>
       <p class="text-gray-500 text-sm mb-6">Seu prêmio foi gerado com sucesso:</p>
       
-      <!-- Caixa do Prêmio com whitespace-normal e break-words para garantir a quebra de linha -->
-      <div class="bg-red-50 py-6 px-4 rounded-2xl mb-6 shadow-inner flex flex-col items-center justify-center w-full">
+      <div class="bg-red-50 py-6 px-4 rounded-2xl mb-6 shadow-inner flex items-center justify-center min-h-[100px] w-full border border-red-100">
         <span id="premio-texto" class="text-3xl md:text-4xl font-extrabold text-[#AA0000] tracking-tight leading-none uppercase text-center w-full whitespace-normal break-words">---</span>
-        <p id="premio-descricao" class="text-[13px] font-bold text-[#AA0000] mt-3 leading-snug text-center w-full whitespace-normal break-words uppercase"></p>
       </div>
 
       <p id="instrucao-print" class="text-sm font-extrabold text-gray-800 mb-1">⚠️ Tire um print desta tela agora!</p>
-      <div id="instrucao-sub" class="text-xs text-gray-500 mb-6 leading-relaxed px-2">
+      <div id="instrucao-sub" class="text-xs text-gray-500 mb-4 leading-relaxed">
         <!-- O JS preenche as instruções conforme o modo (Salão ou Delivery) -->
       </div>
+      
+      <!-- Descrição do Prêmio em Destaque Vermelho -->
+      <p id="premio-descricao" class="text-sm font-black text-[#AA0000] mb-6 leading-snug text-center w-full"></p>
       
       <!-- BOTÃO DELIVERY -->
       <a id="btn-whatsapp" href="#" target="_blank" class="w-full bg-[#25D366] hover:bg-[#1ebe57] text-white font-bold py-4 rounded-2xl text-lg transition-transform transform hover:scale-105 shadow-xl flex items-center justify-center gap-2 mb-4">
@@ -181,7 +182,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     // ⚠️ COLE AS SUAS CREDENCIAIS AQUI DENTRO!
     const firebaseConfig = {
@@ -226,11 +227,12 @@
     const corBranco = "#FFFFFF";
     const corDestaque = "#fcd34d"; 
 
+    // Valores padrão atualizados (PIZZA CALABRESA no lugar de PIZZA INTEIRA)
     let PREMIOS_DELIVERY = [
       { nome: "10% OFF", chance: 45, bg: corVermelho, text: corBranco, brilho: false },
       { nome: "20% OFF", chance: 30, bg: corBranco, text: corVermelho, brilho: false },
       { nome: "BROTO DOCE", chance: 15, bg: corVermelho, text: corBranco, brilho: false },
-      { nome: "PIZZA INTEIRA", chance: 8, bg: corBranco, text: corVermelho, brilho: false },
+      { nome: "PIZZA CALABRESA", chance: 8, bg: corBranco, text: corVermelho, brilho: false },
       { nome: "RODÍZIO GRÁTIS", chance: 2, bg: corDestaque, text: corVermelho, brilho: true } 
     ];
 
@@ -244,35 +246,37 @@
     let modoAtual = "delivery";
     let premiosAtuais = PREMIOS_DELIVERY;
 
-    async function puxarConfigDoBanco() {
-        try {
-            const configRef = await getDoc(doc(db, "config_roleta", "probabilidades"));
-            if (configRef.exists()) {
-                const dados = configRef.data();
-                if(dados.delivery) {
-                    PREMIOS_DELIVERY = dados.delivery.map((d, i) => ({
-                        ...d, 
-                        bg: i % 2 === 0 ? corVermelho : corBranco, 
-                        text: i % 2 === 0 ? corBranco : corVermelho,
-                        brilho: i === dados.delivery.length - 1
-                    }));
-                    PREMIOS_DELIVERY[PREMIOS_DELIVERY.length - 1].bg = corDestaque;
-                }
-                if(dados.salao) {
-                    PREMIOS_SALAO = dados.salao.map((d, i) => ({
-                        ...d, 
-                        bg: i % 2 === 0 ? corVermelho : corBranco, 
-                        text: i % 2 === 0 ? corBranco : corVermelho,
-                        brilho: i === dados.salao.length - 1
-                    }));
-                    PREMIOS_SALAO[PREMIOS_SALAO.length - 1].bg = corDestaque;
-                }
-                premiosAtuais = modoAtual === 'salao' ? PREMIOS_SALAO : PREMIOS_DELIVERY;
-                drawWheel();
+    // LÓGICA DE PROBABILIDADE ATUALIZANDO EM TEMPO REAL
+    function iniciarLeituraConfig() {
+      onSnapshot(doc(db, "config_roleta", "probabilidades"), (configRef) => {
+        if (configRef.exists()) {
+            const dados = configRef.data();
+            if(dados.delivery) {
+                PREMIOS_DELIVERY = dados.delivery.map((d, i) => ({
+                    ...d, 
+                    chance: Number(d.chance),
+                    bg: i % 2 === 0 ? corVermelho : corBranco, 
+                    text: i % 2 === 0 ? corBranco : corVermelho,
+                    brilho: i === dados.delivery.length - 1
+                }));
+                PREMIOS_DELIVERY[PREMIOS_DELIVERY.length - 1].bg = corDestaque;
             }
-        } catch(e) {}
+            if(dados.salao) {
+                PREMIOS_SALAO = dados.salao.map((d, i) => ({
+                    ...d, 
+                    chance: Number(d.chance),
+                    bg: i % 2 === 0 ? corVermelho : corBranco, 
+                    text: i % 2 === 0 ? corBranco : corVermelho,
+                    brilho: i === dados.salao.length - 1
+                }));
+                PREMIOS_SALAO[PREMIOS_SALAO.length - 1].bg = corDestaque;
+            }
+            premiosAtuais = modoAtual === 'salao' ? PREMIOS_SALAO : PREMIOS_DELIVERY;
+            drawWheel();
+        }
+      });
     }
-    puxarConfigDoBanco();
+    iniciarLeituraConfig();
 
     document.querySelectorAll('input[name="modo_jogo"]').forEach(radio => {
       radio.addEventListener('change', (e) => {
@@ -294,6 +298,7 @@
     const centerY = 500;
     const radius = 480; 
 
+    // Desenho do Canvas (Agora com quebra de linha inteligente para textos longos)
     function drawWheel() {
       ctx.clearRect(0, 0, 1000, 1000);
       const sliceAngle = (2 * Math.PI) / premiosAtuais.length;
@@ -316,8 +321,19 @@
         ctx.textBaseline = "middle";
         ctx.fillStyle = premiosAtuais[i].text;
         
-        ctx.font = "bold 44px 'Inter', Arial, sans-serif";
-        ctx.fillText(premiosAtuais[i].nome, radius - 55, 0);
+        const textoCompleto = premiosAtuais[i].nome;
+        const palavras = textoCompleto.split(' ');
+        
+        ctx.font = "bold 40px 'Inter', Arial, sans-serif";
+        
+        // Regra para quebrar a linha: se tiver mais de uma palavra E for um texto longo
+        if (palavras.length > 1 && textoCompleto.length > 8) {
+            ctx.fillText(palavras[0], radius - 55, -22);
+            ctx.fillText(palavras.slice(1).join(' '), radius - 55, 22);
+        } else {
+            ctx.fillText(textoCompleto, radius - 55, 0);
+        }
+        
         ctx.restore();
       }
     }
@@ -408,7 +424,7 @@
       let soma = 0, premioEscolhido = null, indiceEscolhido = 0;
 
       for (let i = 0; i < premiosAtuais.length; i++) {
-        soma += premiosAtuais[i].chance;
+        soma += Number(premiosAtuais[i].chance);
         if (random <= soma) {
           premioEscolhido = premiosAtuais[i].nome;
           indiceEscolhido = i; break;
@@ -438,26 +454,26 @@
             dataHora: new Date().toISOString()
           });
 
-          // Definição das descrições detalhadas
+          // Novas descrições solicitadas
           const descricoes = {
-            "BROTO DOCE": "Na compra de qualquer pizza, você ganha uma broto doce de graça.",
-            "PIZZA INTEIRA": "Na compra de qualquer pizza, você ganha uma pizza de calabresa.",
-            "10% OFF": "Você ganha um cupom de 10% de desconto na sua compra.",
-            "20% OFF": "Você ganha um cupom de 20% de desconto na sua compra.",
-            "RODÍZIO GRÁTIS": "Você ganhou um vale rodízio para a próxima visita, receba o voucher no WhatsApp.",
-            "5% OFF": "Você ganha 5% de desconto na sua comanda (não cumulativa).",
-            "8% OFF": "Você ganha 8% de desconto na sua comanda (não cumulativa).",
-            "UM DRINK": "Você ganha um drink não alcoólico hoje!",
-            "VALE RODÍZIO": "Você ganhou um vale rodízio para a próxima visita, o voucher será enviado no seu WhatsApp."
+            "BROTO DOCE": "🎉 Você ganhou uma broto doce! Na compra de qualquer pizza, ela é sua gratuitamente.",
+            "PIZZA CALABRESA": "🎉 Você ganhou uma pizza de Calabresa! Na compra de qualquer pizza, receba a sua de presente.",
+            "10% OFF": "🎉 Você ganhou um cupom de 10% de desconto para usar na sua compra.",
+            "20% OFF": "🎉 Você ganhou um cupom de 20% de desconto para usar na sua compra.",
+            "RODÍZIO GRÁTIS": "🎉 Você ganhou um vale rodízio para a sua próxima visita! O voucher será enviado para o seu WhatsApp.",
+            "5% OFF": "🎉 Você ganhou 5% de desconto na sua comanda! Benefício não cumulativo.",
+            "8% OFF": "🎉 Você ganhou 8% de desconto na sua comanda! Benefício não cumulativo.",
+            "UM DRINK": "🎉 Você ganhou um drink não alcoólico para aproveitar hoje!",
+            "VALE RODÍZIO": "🎉 Você ganhou um vale rodízio para a sua próxima visita! O voucher será enviado para o seu WhatsApp."
           };
 
           const primeiroNome = dadosCliente.nome.split(' ')[0].toUpperCase();
           document.querySelector('#modal-premio h2').textContent = `PARABÉNS, ${primeiroNome}!`;
+          
           document.getElementById('premio-texto').textContent = premioEscolhido;
           
-          // Preenche a descrição e força quebra de linha
           const desc = descricoes[premioEscolhido] || "";
-          document.getElementById('premio-descricao').textContent = desc.toUpperCase();
+          document.getElementById('premio-descricao').textContent = desc;
           
           if (dadosCliente.modo === 'salao') {
             document.getElementById('btn-whatsapp').classList.add('hidden');
