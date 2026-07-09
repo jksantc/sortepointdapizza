@@ -144,24 +144,25 @@
     </div>
   </div>
 
-  <!-- MODAL 2: PRÊMIO -->
+  <!-- MODAL 2: PRÊMIO FINAL -->
   <div id="modal-premio" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop px-4 hidden">
     <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 md:p-8 text-center relative overflow-hidden">
       
       <h2 class="text-3xl font-extrabold text-[#AA0000] tracking-tight mb-2 mt-2">PARABÉNS, NOME!</h2>
       <p class="text-gray-500 text-sm mb-6">Seu prêmio foi gerado com sucesso:</p>
       
+      <!-- Caixa apenas para o nome do prêmio -->
       <div class="bg-red-50 py-6 px-4 rounded-2xl mb-6 shadow-inner flex items-center justify-center min-h-[100px] w-full border border-red-100">
         <span id="premio-texto" class="text-3xl md:text-4xl font-extrabold text-[#AA0000] tracking-tight leading-none uppercase text-center w-full whitespace-normal break-words">---</span>
       </div>
 
       <p id="instrucao-print" class="text-sm font-extrabold text-gray-800 mb-1">⚠️ Tire um print desta tela agora!</p>
       <div id="instrucao-sub" class="text-xs text-gray-500 mb-4 leading-relaxed">
-        <!-- O JS preenche as instruções conforme o modo (Salão ou Delivery) -->
+        <!-- O JS preenche as instruções -->
       </div>
       
-      <!-- Descrição do Prêmio em Destaque Vermelho -->
-      <p id="premio-descricao" class="text-sm font-black text-[#AA0000] mb-6 leading-snug text-center w-full"></p>
+      <!-- DESCRIÇÃO EM VERMELHO FORA DA CAIXA -->
+      <p id="premio-descricao" class="text-sm font-black text-[#AA0000] mb-6 leading-snug text-center w-full uppercase"></p>
       
       <!-- BOTÃO DELIVERY -->
       <a id="btn-whatsapp" href="#" target="_blank" class="w-full bg-[#25D366] hover:bg-[#1ebe57] text-white font-bold py-4 rounded-2xl text-lg transition-transform transform hover:scale-105 shadow-xl flex items-center justify-center gap-2 mb-4">
@@ -227,7 +228,7 @@
     const corBranco = "#FFFFFF";
     const corDestaque = "#fcd34d"; 
 
-    // Valores padrão atualizados (PIZZA CALABRESA no lugar de PIZZA INTEIRA)
+    // Valores padrão PIZZA CALABRESA
     let PREMIOS_DELIVERY = [
       { nome: "10% OFF", chance: 45, bg: corVermelho, text: corBranco, brilho: false },
       { nome: "20% OFF", chance: 30, bg: corBranco, text: corVermelho, brilho: false },
@@ -245,12 +246,16 @@
 
     let modoAtual = "delivery";
     let premiosAtuais = PREMIOS_DELIVERY;
+    let permiteMultiplosGiros = false;
 
-    // LÓGICA DE PROBABILIDADE ATUALIZANDO EM TEMPO REAL
+    // LÓGICA DE PROBABILIDADE ATUALIZANDO EM TEMPO REAL E CARREGANDO A OPÇÃO DE TESTE
     function iniciarLeituraConfig() {
       onSnapshot(doc(db, "config_roleta", "probabilidades"), (configRef) => {
         if (configRef.exists()) {
             const dados = configRef.data();
+            
+            permiteMultiplosGiros = dados.multiplosGiros || false;
+
             if(dados.delivery) {
                 PREMIOS_DELIVERY = dados.delivery.map((d, i) => ({
                     ...d, 
@@ -298,7 +303,7 @@
     const centerY = 500;
     const radius = 480; 
 
-    // Desenho do Canvas (Agora com quebra de linha inteligente para textos longos)
+    // Desenho do Canvas (Quebra de linha inteligente)
     function drawWheel() {
       ctx.clearRect(0, 0, 1000, 1000);
       const sliceAngle = (2 * Math.PI) / premiosAtuais.length;
@@ -326,7 +331,6 @@
         
         ctx.font = "bold 40px 'Inter', Arial, sans-serif";
         
-        // Regra para quebrar a linha: se tiver mais de uma palavra E for um texto longo
         if (palavras.length > 1 && textoCompleto.length > 8) {
             ctx.fillText(palavras[0], radius - 55, -22);
             ctx.fillText(palavras.slice(1).join(' '), radius - 55, 22);
@@ -372,17 +376,21 @@
       document.getElementById('btn-liberar').disabled = true;
 
       try {
-        const docSnap = await getDoc(doc(db, "clientes_roleta", cpf));
-        if (docSnap.exists()) {
-          mostrarErro(`O CPF já participou! Prêmio: ${docSnap.data().premio}`);
-          return liberarBotao();
-        }
+        // CORREÇÃO: Apenas faz a verificação se a opção Múltiplos Giros NÃO estiver ativada
+        if (!permiteMultiplosGiros) {
+            const qCpf = query(collection(db, "clientes_roleta"), where("cpf", "==", cpf));
+            const cpfSnap = await getDocs(qCpf);
+            if (!cpfSnap.empty) {
+              mostrarErro(`O CPF já participou! Prêmio: ${cpfSnap.docs[0].data().premio}`);
+              return liberarBotao();
+            }
 
-        const qTelefone = query(collection(db, "clientes_roleta"), where("telefone", "==", telefoneInput));
-        const telefoneSnap = await getDocs(qTelefone);
-        if (!telefoneSnap.empty) {
-          mostrarErro(`Este WhatsApp já foi utilizado!`);
-          return liberarBotao();
+            const qTelefone = query(collection(db, "clientes_roleta"), where("telefone", "==", telefoneInput));
+            const telefoneSnap = await getDocs(qTelefone);
+            if (!telefoneSnap.empty) {
+              mostrarErro(`Este WhatsApp já foi utilizado!`);
+              return liberarBotao();
+            }
         }
 
         erroMsg.classList.add('hidden');
@@ -444,7 +452,10 @@
 
       setTimeout(async () => {
         try {
-          await setDoc(doc(db, "clientes_roleta", `${dadosCliente.nome} - ${dadosCliente.cpf}`), {
+          // CORREÇÃO: Cria um ID único se estiver no modo múltiplos giros
+          const docId = permiteMultiplosGiros ? `${dadosCliente.cpf}_${Date.now()}` : dadosCliente.cpf;
+          
+          await setDoc(doc(db, "clientes_roleta", docId), {
             nome: dadosCliente.nome, 
             telefone: dadosCliente.telefone, 
             cpf: dadosCliente.cpf,
@@ -454,7 +465,7 @@
             dataHora: new Date().toISOString()
           });
 
-          // Novas descrições solicitadas
+          // Frases atualizadas
           const descricoes = {
             "BROTO DOCE": "🎉 Você ganhou uma broto doce! Na compra de qualquer pizza, ela é sua gratuitamente.",
             "PIZZA CALABRESA": "🎉 Você ganhou uma pizza de Calabresa! Na compra de qualquer pizza, receba a sua de presente.",
@@ -469,7 +480,6 @@
 
           const primeiroNome = dadosCliente.nome.split(' ')[0].toUpperCase();
           document.querySelector('#modal-premio h2').textContent = `PARABÉNS, ${primeiroNome}!`;
-          
           document.getElementById('premio-texto').textContent = premioEscolhido;
           
           const desc = descricoes[premioEscolhido] || "";

@@ -9,7 +9,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <script>
-    // Tailwind Config para habilitar Modo Escuro manual via classe
     tailwind.config = { darkMode: 'class' }
   </script>
 
@@ -36,7 +35,7 @@
   <!-- DASHBOARD -->
   <div id="dashboard-screen" class="hidden flex-col h-full">
     
-    <!-- Cabeçalho (Limpo e com Botão Dark Mode) -->
+    <!-- Cabeçalho -->
     <header class="bg-white dark:bg-gray-800 text-gray-800 dark:text-white p-4 shadow-sm flex justify-between items-center px-6 lg:px-8 z-10 transition-colors">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 bg-[#AA0000] rounded-full overflow-hidden shadow-sm flex items-center justify-center">
@@ -145,6 +144,19 @@
             <div class="mt-4 text-right text-sm text-gray-500 dark:text-gray-400">Soma Total: <span id="soma-sal" class="font-bold text-green-500">100%</span></div>
           </div>
         </div>
+        
+        <!-- Toggle Permitir Múltiplos Giros -->
+        <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div class="text-center sm:text-left">
+            <h3 class="font-extrabold text-gray-800 dark:text-gray-200">Permitir Múltiplos Giros (Sem Restrição)</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Desativa o bloqueio de CPF e WhatsApp. Ideal para você testar a roleta.</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="toggle-multiplos" class="sr-only peer">
+            <div class="w-14 h-7 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 dark:peer-focus:ring-red-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-[#AA0000]"></div>
+          </label>
+        </div>
+
       </div>
 
       <!-- Tabela -->
@@ -230,7 +242,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, onSnapshot, query, orderBy, doc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // ⚠️ CREDENCIAIS
+    // ⚠️ COLE SUAS CREDENCIAIS AQUI!
     const firebaseConfig = {
       apiKey: "SUA_API_KEY_AQUI",
       authDomain: "sorte-pointdapizza.firebaseapp.com",
@@ -243,9 +255,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // ==========================================
-    // MODO NOTURNO (DARK MODE)
-    // ==========================================
     const htmlEl = document.documentElement;
     const btnTheme = document.getElementById('btn-theme-toggle');
 
@@ -263,16 +272,12 @@
         localStorage.setItem('admin_theme', 'light');
         btnTheme.textContent = '🌙 Tema Escuro';
       }
-      // Redesenha gráfico com cores corretas p/ o fundo
-      if(!document.getElementById('modal-metricas').classList.contains('hidden')) {
+      if(!document.getElementById('modal-metricas') && !document.getElementById('modal-graficos').classList.contains('hidden')) {
           const tipo = document.querySelector('input[name="tipo_grafico"]:checked').value;
           desenharGrafico(tipo);
       }
     });
 
-    // ==========================================
-    // SISTEMA DE SESSÃO / SENHA
-    // ==========================================
     async function verificarSenhaAdmin(senhaDigitada) {
       let senhaReal = "pizza123"; 
       try {
@@ -324,7 +329,6 @@
 
     checarSessao(); 
 
-    // Troca de Senha
     document.getElementById('btn-abrir-senha').addEventListener('click', () => {
       document.getElementById('modal-senha').classList.remove('hidden');
       document.getElementById('input-senha-atual').value = '';
@@ -354,9 +358,6 @@
       }
     });
 
-    // ==========================================
-    // GRÁFICOS (NO MODAL SEPARADO)
-    // ==========================================
     let meuGrafico = null;
     let dadosContagem = {};
     const coresGrafico = ['#AA0000', '#fcd34d', '#25D366', '#3b82f6', '#f97316', '#8b5cf6', '#ec4899'];
@@ -397,22 +398,19 @@
     }
 
     document.getElementById('btn-abrir-metricas').addEventListener('click', () => {
-      document.getElementById('modal-metricas').classList.remove('hidden');
+      document.getElementById('modal-graficos').classList.remove('hidden');
       const tipoSelecionado = document.querySelector('input[name="tipo_grafico"]:checked').value;
       desenharGrafico(tipoSelecionado);
     });
 
     window.fecharGraficos = function() {
-      document.getElementById('modal-metricas').classList.add('hidden');
+      document.getElementById('modal-graficos').classList.add('hidden');
     }
 
     document.querySelectorAll('input[name="tipo_grafico"]').forEach(radio => {
       radio.addEventListener('change', (e) => desenharGrafico(e.target.value));
     });
 
-    // ==========================================
-    // CONFIGURAÇÕES E TABELA
-    // ==========================================
     async function carregarProbabilidadesDoBanco() {
       try {
         const docSnap = await getDoc(doc(db, "config_roleta", "probabilidades"));
@@ -425,6 +423,9 @@
           if(config.salao) {
             const nomesSal = document.querySelectorAll('.name-sal'), percsSal = document.querySelectorAll('.perc-sal');
             config.salao.forEach((item, i) => { if(nomesSal[i]) nomesSal[i].value = item.nome; if(percsSal[i]) percsSal[i].value = item.chance; });
+          }
+          if(config.multiplosGiros !== undefined) {
+             document.getElementById('toggle-multiplos').checked = config.multiplosGiros;
           }
           calcularTotais();
         }
@@ -477,7 +478,7 @@
         document.getElementById('total-delivery').textContent = contDelivery;
         document.getElementById('tabela-corpo').innerHTML = todosClientes.length === 0 ? '<tr><td colspan="8" class="p-4 text-center text-gray-400">Nenhum jogador ainda.</td></tr>' : htmlTabela;
         
-        if(!document.getElementById('modal-metricas').classList.contains('hidden')) {
+        if(!document.getElementById('modal-graficos').classList.contains('hidden')) {
            const tipoSelecionado = document.querySelector('input[name="tipo_grafico"]:checked').value;
            desenharGrafico(tipoSelecionado);
         }
@@ -514,7 +515,15 @@
         const ns = document.querySelectorAll('.name-sal'), ps = document.querySelectorAll('.perc-sal');
         let arrS = []; for (let i=0; i<ns.length; i++) arrS.push({ nome: ns[i].value, chance: Number(ps[i].value) });
 
-        await setDoc(doc(db, "config_roleta", "probabilidades"), { delivery: arrD, salao: arrS, atualizadoEm: new Date().toISOString() });
+        const multiplosGiros = document.getElementById('toggle-multiplos').checked;
+
+        await setDoc(doc(db, "config_roleta", "probabilidades"), { 
+            delivery: arrD, 
+            salao: arrS, 
+            multiplosGiros: multiplosGiros,
+            atualizadoEm: new Date().toISOString() 
+        });
+        
         btn.textContent = "Salvo ✓"; btn.classList.replace("bg-green-500", "bg-emerald-500");
         setTimeout(() => { btn.textContent = "Salvar Alterações"; btn.classList.replace("bg-emerald-500", "bg-green-500"); btn.disabled = false; }, 2000);
       } catch (err) { alert("Erro ao salvar."); btn.disabled = false; }
