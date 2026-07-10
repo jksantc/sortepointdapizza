@@ -135,6 +135,13 @@
           <input type="text" id="input-cpf" required maxlength="11" placeholder="Ex: 12345678900" class="w-full mt-1 p-3 bg-gray-50 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100 transition-all text-sm font-semibold text-gray-700 shadow-sm">
         </div>
         
+        <!-- ALERTA DE BLOQUEIO DE IP (NOVO) -->
+        <div id="bloqueio-ip" class="hidden bg-red-50 p-4 rounded-xl border border-red-200 text-center shadow-sm">
+          <p class="text-sm font-bold text-red-700">Muitas tentativas desta rede! 🚫</p>
+          <p class="text-[11px] text-red-600 mt-1">Para evitar fraudes, aguarde o tempo abaixo para girar novamente:</p>
+          <p id="cronometro-ip" class="text-3xl font-black text-[#AA0000] mt-2 font-mono tracking-tighter">10:00</p>
+        </div>
+
         <p id="erro-msg" class="text-red-500 text-xs font-bold text-center bg-red-50 p-3 rounded-xl hidden"></p>
         
         <button type="submit" id="btn-liberar" class="mt-2 w-full bg-[#AA0000] hover:bg-red-800 text-white font-bold py-4 rounded-2xl text-lg transition-transform transform hover:scale-[1.02] shadow-lg shadow-red-900/20">
@@ -151,26 +158,20 @@
       <h2 class="text-3xl font-extrabold text-[#AA0000] tracking-tight mb-2 mt-2">PARABÉNS, NOME!</h2>
       <p class="text-gray-500 text-sm mb-6">Seu prêmio foi gerado com sucesso:</p>
       
-      <!-- Caixa apenas para o nome do prêmio -->
       <div class="bg-red-50 py-6 px-4 rounded-2xl mb-6 shadow-inner flex items-center justify-center min-h-[100px] w-full border border-red-100">
         <span id="premio-texto" class="text-3xl md:text-4xl font-extrabold text-[#AA0000] tracking-tight leading-none uppercase text-center w-full whitespace-normal break-words">---</span>
       </div>
 
       <p id="instrucao-print" class="text-sm font-extrabold text-gray-800 mb-1">⚠️ Tire um print desta tela agora!</p>
-      <div id="instrucao-sub" class="text-xs text-gray-500 mb-4 leading-relaxed">
-        <!-- O JS preenche as instruções -->
-      </div>
+      <div id="instrucao-sub" class="text-xs text-gray-500 mb-4 leading-relaxed"></div>
       
-      <!-- DESCRIÇÃO EM VERMELHO FORA DA CAIXA -->
       <p id="premio-descricao" class="text-sm font-black text-[#AA0000] mb-6 leading-snug text-center w-full uppercase"></p>
       
-      <!-- BOTÃO DELIVERY -->
       <a id="btn-whatsapp" href="#" target="_blank" class="w-full bg-[#25D366] hover:bg-[#1ebe57] text-white font-bold py-4 rounded-2xl text-lg transition-transform transform hover:scale-105 shadow-xl flex items-center justify-center gap-2 mb-4">
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.347-.272.297-1.04 1.016-1.04 2.479 0 1.463 1.065 2.876 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
         Informar no WhatsApp
       </a>
 
-      <!-- AVISO SALÃO -->
       <div id="msg-resgate-salao" class="w-full bg-[#AA0000] text-white font-extrabold py-4 rounded-2xl text-lg shadow-lg hidden mb-4 uppercase tracking-wide">
         🍽️ Apresente no Caixa
       </div>
@@ -262,6 +263,44 @@
         if ((resto === 10) || (resto === 11)) resto = 0;
         if (resto !== parseInt(cpf.substring(10, 11))) return false;
         return true;
+    }
+
+    // CONTROLE DE CRONÔMETRO DE IP
+    let timerBloqueio;
+    function iniciarCronometroBloqueio(tempoRestanteMs) {
+        const divBloqueio = document.getElementById('bloqueio-ip');
+        const spanTempo = document.getElementById('cronometro-ip');
+        const btn = document.getElementById('btn-liberar');
+        
+        document.getElementById('erro-msg').classList.add('hidden');
+        divBloqueio.classList.remove('hidden');
+        btn.textContent = "Aguarde o tempo...";
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        
+        if(timerBloqueio) clearInterval(timerBloqueio);
+        
+        let tempo = tempoRestanteMs;
+        
+        const updateUI = () => {
+            if(tempo <= 0) {
+                clearInterval(timerBloqueio);
+                divBloqueio.classList.add('hidden');
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn.textContent = "Entrar e Jogar";
+            } else {
+                const min = Math.floor((tempo / 1000) / 60);
+                const sec = Math.floor((tempo / 1000) % 60);
+                spanTempo.textContent = `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+            }
+        };
+        
+        updateUI();
+        timerBloqueio = setInterval(() => {
+            tempo -= 1000;
+            updateUI();
+        }, 1000);
     }
 
     function iniciarLeituraConfig() {
@@ -382,7 +421,6 @@
       const telefoneInput = document.getElementById('input-telefone').value.replace(/\D/g, '');
       const cpf = document.getElementById('input-cpf').value.replace(/\D/g, '');
 
-      // VALIDAR CPF REAL
       if (!validarCPF(cpf)) return mostrarErro("CPF inválido. Verifique os números digitados.");
       if(telefoneInput.length < 10 || telefoneInput.length > 11) return mostrarErro("Telefone inválido.");
 
@@ -414,6 +452,29 @@
           const dataIp = await resIp.json();
           ipCliente = dataIp.ip;
         } catch (e) { }
+
+        // CHECAGEM DE LIMITE DE IP (3 vezes a cada 10 min)
+        if (!permiteMultiplosGiros && ipCliente !== "Não capturado") {
+            const qIp = query(collection(db, "clientes_roleta"), where("ip", "==", ipCliente));
+            const ipSnap = await getDocs(qIp);
+            
+            if (ipSnap.size >= 3) {
+                let maisRecente = 0;
+                ipSnap.forEach(doc => {
+                    const d = new Date(doc.data().dataHora).getTime();
+                    if (d > maisRecente) maisRecente = d;
+                });
+                
+                const tempoPassado = Date.now() - maisRecente;
+                const dezMinutos = 10 * 60 * 1000;
+                
+                if (tempoPassado < dezMinutos) {
+                    const tempoRestante = dezMinutos - tempoPassado;
+                    iniciarCronometroBloqueio(tempoRestante);
+                    return; // Para a execução aqui e exibe o timer
+                }
+            }
+        }
 
         dadosCliente = { nome, telefone: telefoneInput, cpf, modo: modoAtual, ip: ipCliente };
         modalCadastro.classList.add('hidden');
