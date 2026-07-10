@@ -135,7 +135,7 @@
           <input type="text" id="input-cpf" required maxlength="11" placeholder="Ex: 12345678900" class="w-full mt-1 p-3 bg-gray-50 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100 transition-all text-sm font-semibold text-gray-700 shadow-sm">
         </div>
         
-        <!-- ALERTA DE BLOQUEIO DE IP (NOVO) -->
+        <!-- ALERTA DE BLOQUEIO DE IP -->
         <div id="bloqueio-ip" class="hidden bg-red-50 p-4 rounded-xl border border-red-200 text-center shadow-sm">
           <p class="text-sm font-bold text-red-700">Muitas tentativas desta rede! 🚫</p>
           <p class="text-[11px] text-red-600 mt-1">Para evitar fraudes, aguarde o tempo abaixo para girar novamente:</p>
@@ -248,7 +248,7 @@
     let premiosAtuais = PREMIOS_DELIVERY;
     let permiteMultiplosGiros = false;
 
-    // VALIDADOR DE CPF MATEMÁTICO REAL
+    // VALIDADOR DE CPF
     function validarCPF(cpf) {
         cpf = cpf.replace(/[^\d]+/g, '');
         if (cpf === '' || cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
@@ -265,7 +265,7 @@
         return true;
     }
 
-    // CONTROLE DE CRONÔMETRO DE IP
+    // CONTROLE DE CRONÔMETRO
     let timerBloqueio;
     function iniciarCronometroBloqueio(tempoRestanteMs) {
         const divBloqueio = document.getElementById('bloqueio-ip');
@@ -453,25 +453,45 @@
           ipCliente = dataIp.ip;
         } catch (e) { }
 
-        // CHECAGEM DE LIMITE DE IP (3 vezes a cada 10 min)
+        // CHECAGEM DE LIMITE DE IP E REGISTRO PARA O ADMIN
         if (!permiteMultiplosGiros && ipCliente !== "Não capturado") {
             const qIp = query(collection(db, "clientes_roleta"), where("ip", "==", ipCliente));
             const ipSnap = await getDocs(qIp);
             
-            if (ipSnap.size >= 3) {
-                let maisRecente = 0;
-                ipSnap.forEach(doc => {
-                    const d = new Date(doc.data().dataHora).getTime();
-                    if (d > maisRecente) maisRecente = d;
-                });
-                
+            let validSpins = 0;
+            let maisRecente = 0;
+
+            ipSnap.forEach(doc => {
+                const d = doc.data();
+                if(d.premio && !d.premio.includes("BLOQUEADO")) {
+                    validSpins++;
+                    const dataTime = new Date(d.dataHora).getTime();
+                    if (dataTime > maisRecente) maisRecente = dataTime;
+                }
+            });
+            
+            if (validSpins >= 3) {
                 const tempoPassado = Date.now() - maisRecente;
                 const dezMinutos = 10 * 60 * 1000;
                 
                 if (tempoPassado < dezMinutos) {
                     const tempoRestante = dezMinutos - tempoPassado;
                     iniciarCronometroBloqueio(tempoRestante);
-                    return; // Para a execução aqui e exibe o timer
+                    
+                    // Salva a tentativa bloqueada no banco para o painel Admin visualizar
+                    try {
+                        await setDoc(doc(db, "clientes_roleta", `bloq_${cpf}_${Date.now()}`), {
+                            nome: nome, 
+                            telefone: telefoneInput, 
+                            cpf: cpf,
+                            modo: modoAtual,
+                            ip: ipCliente,
+                            premio: "🚫 BLOQUEADO (Limite IP)", 
+                            dataHora: new Date().toISOString()
+                        });
+                    } catch(e) {}
+
+                    return; 
                 }
             }
         }
