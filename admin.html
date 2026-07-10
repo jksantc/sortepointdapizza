@@ -159,10 +159,10 @@
 
       </div>
 
-      <!-- Tabela -->
-      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none overflow-hidden flex flex-col h-[500px] transition-colors">
+      <!-- Tabela Principal com IP e Bilhetes -->
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none overflow-hidden flex flex-col h-[550px] transition-colors">
         <div class="p-6 flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-gray-100 dark:border-gray-700">
-          <h2 class="text-lg font-extrabold text-gray-800 dark:text-white tracking-tight">📋 Últimos Ganhadores</h2>
+          <h2 class="text-lg font-extrabold text-gray-800 dark:text-white tracking-tight">📋 Controle de Ganhadores</h2>
           <button id="btn-exportar" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-xl flex items-center gap-2 transition-colors shadow-sm text-sm">
             Exportar Excel
           </button>
@@ -170,7 +170,7 @@
         
         <div class="overflow-x-auto flex-grow scrollbar-hide">
           <table class="w-full text-left border-collapse">
-            <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-300 text-xs uppercase font-bold sticky top-0 transition-colors">
+            <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-300 text-xs uppercase font-bold sticky top-0 transition-colors z-10">
               <tr>
                 <th class="p-4">Data / Hora</th>
                 <th class="p-4">Nome</th>
@@ -179,11 +179,12 @@
                 <th class="p-4">IP (Rede)</th>
                 <th class="p-4">Prêmio</th>
                 <th class="p-4">Modo</th>
+                <th class="p-4">Cupom / Bilhete</th>
                 <th class="p-4 text-center">Ações</th>
               </tr>
             </thead>
             <tbody id="tabela-corpo" class="text-sm divide-y divide-gray-50 dark:divide-gray-700">
-              <tr><td colspan="8" class="p-4 text-center text-gray-400">Carregando dados...</td></tr>
+              <tr><td colspan="9" class="p-4 text-center text-gray-400">Carregando dados...</td></tr>
             </tbody>
           </table>
         </div>
@@ -192,7 +193,7 @@
   </div>
 
   <!-- MODAL GRÁFICOS -->
-  <div id="modal-graficos" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop px-4 hidden">
+  <div id="modal-graficos" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop px-4 hidden z-[100]">
     <div class="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-3xl shadow-2xl p-8 relative transition-colors">
       <button onclick="fecharGraficos()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -217,7 +218,7 @@
   </div>
 
   <!-- MODAL TROCAR SENHA -->
-  <div id="modal-senha" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop px-4 hidden">
+  <div id="modal-senha" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop px-4 hidden z-[100]">
     <div class="bg-white dark:bg-gray-800 w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center relative transition-colors">
       <h2 class="text-2xl font-extrabold text-[#AA0000] dark:text-red-400 tracking-tight mb-6">Trocar Senha</h2>
       <div class="space-y-4 text-left">
@@ -272,7 +273,7 @@
         localStorage.setItem('admin_theme', 'light');
         btnTheme.textContent = '🌙 Tema Escuro';
       }
-      if(!document.getElementById('modal-metricas') && !document.getElementById('modal-graficos').classList.contains('hidden')) {
+      if(!document.getElementById('modal-graficos').classList.contains('hidden')) {
           const tipo = document.querySelector('input[name="tipo_grafico"]:checked').value;
           desenharGrafico(tipo);
       }
@@ -441,7 +442,17 @@
         dadosContagem = {}; 
         let contSalao = 0, contDelivery = 0;
         let htmlTabela = '';
+        
+        // Passo 1: Contar a frequência dos IPs para identificar duplicidades
+        let ipCounts = {};
+        snapshot.forEach((d) => {
+            const ip = d.data().ip;
+            if(ip && ip !== "Não capturado") {
+                ipCounts[ip] = (ipCounts[ip] || 0) + 1;
+            }
+        });
 
+        // Passo 2: Construir a tabela
         snapshot.forEach((docSnap) => {
           const cliente = docSnap.data();
           todosClientes.push(cliente);
@@ -455,15 +466,31 @@
             ? `<span class="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded text-[10px] font-bold uppercase shadow-sm">Salão</span>`
             : `<span class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded text-[10px] font-bold uppercase shadow-sm">Delivery</span>`;
 
+          // Lógica de Alerta de IP Duplicado
+          const isIpDuplicado = cliente.ip && cliente.ip !== "Não capturado" && ipCounts[cliente.ip] > 1;
+          const styleIp = isIpDuplicado ? 'text-red-600 dark:text-red-400 font-extrabold bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded shadow-sm border border-red-200 dark:border-red-800' : 'text-gray-400 dark:text-gray-500';
+          const iconIp = isIpDuplicado ? '<span title="IP Duplicado! Múltiplas jogadas na mesma rede.">⚠️</span> ' : '';
+
+          // Lógica do Bilhete e do Checkmark de "Cupom Enviado"
+          const bilheteValue = cliente.bilhete || '';
+          const checkMark = bilheteValue ? `<span class="text-green-500 ml-2 text-lg drop-shadow-sm flex-shrink-0" title="Cupom Enviado/Atribuído">✅</span>` : '';
+
           htmlTabela += `
             <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-50 dark:border-gray-800">
               <td class="p-4 whitespace-nowrap text-gray-500 dark:text-gray-400 text-xs">${dataFormatada}</td>
               <td class="p-4 font-bold text-gray-800 dark:text-gray-200">${cliente.nome}</td>
               <td class="p-4"><a href="https://wa.me/55${cliente.telefone}" target="_blank" class="text-green-600 dark:text-green-400 hover:underline font-semibold">${cliente.telefone}</a></td>
               <td class="p-4 text-gray-500 dark:text-gray-400 text-xs">${cliente.cpf}</td>
-              <td class="p-4 text-gray-400 dark:text-gray-500 text-xs font-mono">${cliente.ip || '-'}</td>
+              <td class="p-4 text-xs font-mono"><span class="${styleIp}">${iconIp}${cliente.ip || '-'}</span></td>
               <td class="p-4 font-extrabold text-[#AA0000] dark:text-red-400 text-xs">${cliente.premio}</td>
               <td class="p-4">${tagModo}</td>
+              <td class="p-4">
+                 <div class="flex items-center gap-1">
+                    <input type="text" id="bilhete_${docSnap.id}" value="${bilheteValue}" placeholder="Cód..." class="w-24 p-1.5 text-xs font-bold border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white uppercase shadow-sm">
+                    <button onclick="salvarBilhete('${docSnap.id}')" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-white p-1.5 rounded transition-colors border border-gray-200 dark:border-gray-500 shadow-sm" title="Salvar Código do Cupom">💾</button>
+                    ${checkMark}
+                 </div>
+              </td>
               <td class="p-4 text-center">
                 <button onclick="deletarCliente('${docSnap.id}')" class="text-red-300 hover:text-red-600 dark:hover:text-red-400 transition" title="Excluir Jogador">
                   <svg class="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -476,7 +503,7 @@
         document.getElementById('total-jogadores').textContent = todosClientes.length;
         document.getElementById('total-salao').textContent = contSalao;
         document.getElementById('total-delivery').textContent = contDelivery;
-        document.getElementById('tabela-corpo').innerHTML = todosClientes.length === 0 ? '<tr><td colspan="8" class="p-4 text-center text-gray-400">Nenhum jogador ainda.</td></tr>' : htmlTabela;
+        document.getElementById('tabela-corpo').innerHTML = todosClientes.length === 0 ? '<tr><td colspan="9" class="p-4 text-center text-gray-400">Nenhum jogador ainda.</td></tr>' : htmlTabela;
         
         if(!document.getElementById('modal-graficos').classList.contains('hidden')) {
            const tipoSelecionado = document.querySelector('input[name="tipo_grafico"]:checked').value;
@@ -484,6 +511,18 @@
         }
       });
     }
+
+    // Função global para salvar o bilhete no banco de dados
+    window.salvarBilhete = async (idDocumento) => {
+      const input = document.getElementById(`bilhete_${idDocumento}`);
+      const valor = input.value.trim().toUpperCase();
+      try {
+         await setDoc(doc(db, "clientes_roleta", idDocumento), { bilhete: valor }, { merge: true });
+         // O onSnapshot cuida de atualizar a interface e mostrar o ✅ instantaneamente
+      } catch(e) {
+         alert("Erro ao salvar o bilhete.");
+      }
+    };
 
     window.deletarCliente = async (idDocumento) => {
       if(confirm("Tem certeza que deseja excluir?")) { await deleteDoc(doc(db, "clientes_roleta", idDocumento)); }
@@ -531,11 +570,12 @@
 
     document.getElementById('btn-exportar').addEventListener('click', () => {
       if(todosClientes.length === 0) return;
-      let csv = "Data/Hora,Nome,WhatsApp,CPF,IP,Prêmio,Modo\n";
-      todosClientes.forEach(c => { csv += `${new Date(c.dataHora).toLocaleString('pt-BR')},"${c.nome}","${c.telefone}","${c.cpf}","${c.ip || '-'}","${c.premio}","${c.modo}"\n`; });
+      // Atualizei a exportação para incluir o cupom
+      let csv = "Data/Hora,Nome,WhatsApp,CPF,IP,Prêmio,Modo,Cupom\n";
+      todosClientes.forEach(c => { csv += `${new Date(c.dataHora).toLocaleString('pt-BR')},"${c.nome}","${c.telefone}","${c.cpf}","${c.ip || '-'}","${c.premio}","${c.modo}","${c.bilhete || ''}"\n`; });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' }));
-      link.download = `ganhadores.csv`; link.click();
+      link.download = `ganhadores_pointdapizza.csv`; link.click();
     });
 
   </script>
