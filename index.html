@@ -25,6 +25,13 @@
 </head>
 <body class="text-gray-800 min-h-screen flex flex-col relative">
 
+  <!-- TELA SITE INATIVO (NOVO) -->
+  <div id="tela-inativa" class="fixed inset-0 bg-[#AA0000] z-[100] hidden flex-col items-center justify-center p-6 text-center">
+    <img src="p-logo.png" alt="Logo" class="w-32 h-32 mb-8 bg-white rounded-full p-2 shadow-2xl">
+    <h1 class="text-4xl md:text-5xl font-black text-white tracking-tight mb-4 uppercase">Promoção Encerrada</h1>
+    <p id="texto-inativo" class="text-lg md:text-xl font-medium text-red-100 max-w-lg leading-relaxed px-4"></p>
+  </div>
+
   <!-- CONTADOR ONLINE -->
   <div class="absolute top-4 left-4 z-40 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg shadow-gray-200/50 flex items-center gap-2">
     <span class="relative flex h-3 w-3">
@@ -248,7 +255,6 @@
     let premiosAtuais = PREMIOS_DELIVERY;
     let permiteMultiplosGiros = false;
 
-    // VALIDADOR DE CPF
     function validarCPF(cpf) {
         cpf = cpf.replace(/[^\d]+/g, '');
         if (cpf === '' || cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
@@ -265,7 +271,6 @@
         return true;
     }
 
-    // CONTROLE DE CRONÔMETRO
     let timerBloqueio;
     function iniciarCronometroBloqueio(tempoRestanteMs) {
         const divBloqueio = document.getElementById('bloqueio-ip');
@@ -303,10 +308,22 @@
         }, 1000);
     }
 
+    // LÓGICA DE CONTROLE DE ACESSO DO SITE
     function iniciarLeituraConfig() {
       onSnapshot(doc(db, "config_roleta", "probabilidades"), (configRef) => {
         if (configRef.exists()) {
             const dados = configRef.data();
+            
+            // CHECAGEM SE O SITE FOI DESATIVADO NO ADMIN
+            if (dados.siteAtivo === false) {
+                document.getElementById('texto-inativo').textContent = dados.mensagemInativo || "A promoção acabou! Em breve vamos reabrir.";
+                document.getElementById('tela-inativa').classList.remove('hidden');
+                document.getElementById('tela-inativa').classList.add('flex');
+            } else {
+                document.getElementById('tela-inativa').classList.add('hidden');
+                document.getElementById('tela-inativa').classList.remove('flex');
+            }
+
             permiteMultiplosGiros = dados.multiplosGiros || false;
 
             if(dados.delivery) {
@@ -453,7 +470,6 @@
           ipCliente = dataIp.ip;
         } catch (e) { }
 
-        // CHECAGEM DE LIMITE DE IP E REGISTRO PARA O ADMIN
         if (!permiteMultiplosGiros && ipCliente !== "Não capturado") {
             const qIp = query(collection(db, "clientes_roleta"), where("ip", "==", ipCliente));
             const ipSnap = await getDocs(qIp);
@@ -478,7 +494,6 @@
                     const tempoRestante = dezMinutos - tempoPassado;
                     iniciarCronometroBloqueio(tempoRestante);
                     
-                    // Salva a tentativa bloqueada no banco para o painel Admin visualizar
                     try {
                         await setDoc(doc(db, "clientes_roleta", `bloq_${cpf}_${Date.now()}`), {
                             nome: nome, 
